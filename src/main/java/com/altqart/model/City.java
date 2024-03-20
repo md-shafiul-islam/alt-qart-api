@@ -4,6 +4,7 @@ import java.util.List;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -23,10 +24,10 @@ import lombok.Setter;
 public class City {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
-	@OneToMany(mappedBy = "city")
+	@OneToMany(mappedBy = "city", fetch = FetchType.LAZY)
 	private List<Address> address;
 
 	private int code;
@@ -39,7 +40,7 @@ public class City {
 	@Column(name = "pathao_code")
 	private int pathaoCode;
 
-	@OneToMany(mappedBy = "city")
+	@OneToMany(mappedBy = "city", fetch = FetchType.LAZY)
 	private List<Zone> zones;
 
 }

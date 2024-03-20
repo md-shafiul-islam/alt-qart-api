@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,8 +19,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import javax.swing.filechooser.FileSystemView;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -136,9 +141,16 @@ public class HelperServicesImpl implements HelperServices {
 
 	@Override
 	public String getInvId() {
-		String randomNum = RandomStringUtils.random(6, false, true);
-		randomNum = getDateString() + "-" + randomNum;
-		return randomNum;
+
+		String n1 = RandomStringUtils.random(3, false, true);
+		return n1 + getDateMsString();
+	}
+
+	private String getDateMsString() {
+		LocalDateTime dateTime = LocalDateTime.now();
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("YYMMddhhssSSS");
+
+		return dateTime.format(formatter);
 	}
 
 	@Override
@@ -166,7 +178,7 @@ public class HelperServicesImpl implements HelperServices {
 
 	@Override
 	public String getRandomString(int length) {
-		return RandomStringUtils.random(length, useLetters, useNumbers);
+		return RandomStringUtils.random(length, false, useNumbers);
 	}
 
 	@Override
@@ -497,21 +509,32 @@ public class HelperServicesImpl implements HelperServices {
 
 					String fileExtenstion = FilenameUtils.getExtension(mFile.getOriginalFilename());
 
-					System.out.println("file Name: " + mFile.getName() + "Fiel Extenstion: " + fileExtenstion);
-
 					String scPath = path;
-					path = STATIC_FILE_DIR + UPLOAD_DIR + path;
-					File makeFile = new File(path);
+					String osName = System.getProperty("os.name");
 
-					if (!makeFile.exists()) {
+//					  String systemName = SystemUtils.OS_NAME;;
+					log.info("osName " + osName);
 
-						if (makeFile.mkdir()) {
-							System.out.println("Make Directory Done !");
-						} else {
-							System.out.println("Make Directory Fail !");
-						}
+					log.info("File Home " + FileSystemView.getFileSystemView().getHomeDirectory());
+					log.info("systemName " + FileSystemView.getFileSystemView().getHomeDirectory());
 
+					String newPath = null;
+					if (isEqual(path, "products")) {
+						newPath = Paths.get(System.getProperty("user.dir"), "../upload").normalize().toString();
+
+						File makeFile = new File(newPath);
+						createFolder(makeFile);
+						newPath = Paths.get(System.getProperty("user.dir"), "../upload/" + path).normalize().toString();
+						createFolder(makeFile);
+
+						log.info("Product Path: " + newPath);
+
+					} else {
+						newPath = STATIC_FILE_DIR + UPLOAD_DIR + path;
 					}
+
+					File makeFile = new File(newPath);
+					createFolder(makeFile);
 
 					byte[] bytes = mFile.getBytes();
 
@@ -519,30 +542,42 @@ public class HelperServicesImpl implements HelperServices {
 
 					String timeStamp = Long.toString(miliSc);
 
-					System.out.println("time Stamp: " + timeStamp);
+					String fileName = timeStamp + getRandomString(16) + "." + fileExtenstion;
 
-					String fileName = timeStamp + getRandomString(15) + "." + fileExtenstion;
-					System.out.println("File Name: " + fileName);
+					String srcPatch = "/" + path + "/" + fileName;
 
-					String name = path + "//" + fileName;
-
-					System.out.println("Path: " + path + " File Name: " + fileName);
-					System.out.println("Full Path: " + name);
+					String name = newPath + "//" + fileName;
 
 					BufferedOutputStream stream = new BufferedOutputStream(new FileOutputStream(new File(name)));
 					stream.write(bytes);
 					stream.close();
 
-					return UPLOAD_DIR + scPath + "/" + fileName;
+					return srcPatch;
 
 				} catch (IOException e) {
 
 					e.printStackTrace();
+					log.info("File Upload Failed: " + e.getMessage());
+
 				}
 			}
 		}
 
 		return null;
+	}
+
+	private void createFolder(File makeFile) {
+
+		if (!makeFile.exists()) {
+
+			if (makeFile.mkdir()) {
+				System.out.println("Make Directory Done !");
+			} else {
+				System.out.println("Make Directory Fail !");
+			}
+
+		}
+
 	}
 
 	private String getDateTimeString(LocalDateTime dateTime) {
@@ -635,11 +670,9 @@ public class HelperServicesImpl implements HelperServices {
 					if (doubleArr.length > 1) {
 
 						doubleArrStr = Arrays.toString(doubleArr);
-						log.info("Befor Replace String " + doubleArrStr);
+
 						doubleArrStr = doubleArrStr.replaceAll(".", "");
 						doubleArrStr = doubleArrStr.replaceAll(",", "");
-
-						log.info("After Replace String " + doubleArrStr);
 
 						if (doubleArrStr.length() > 15) {
 							doubleArrStr = doubleArrStr.substring(0, 15);
@@ -729,6 +762,18 @@ public class HelperServicesImpl implements HelperServices {
 	public String getKeyById(String name, int code) {
 		String key = getKey(name) + "_" + code;
 		return key;
+	}
+
+	@Override
+	public String getInvIdbyStakeholderGenId() {
+
+		return getInvId();
+	}
+
+	@Override
+	public String getStakeholderGenId() {
+		String randomNum = RandomStringUtils.random(6, false, true);
+		return randomNum + getDateTimeString();
 	}
 
 	private String getRandomNum(int count) {

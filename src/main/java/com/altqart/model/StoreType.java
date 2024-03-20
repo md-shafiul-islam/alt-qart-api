@@ -3,6 +3,7 @@ package com.altqart.model;
 import java.util.List;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -22,10 +23,10 @@ import lombok.Setter;
 public class StoreType {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
-	@OneToMany(mappedBy = "storeType")
+	@OneToMany(mappedBy = "storeType", fetch = FetchType.LAZY)
 	private List<Store> stores;
 	
 	private String name;

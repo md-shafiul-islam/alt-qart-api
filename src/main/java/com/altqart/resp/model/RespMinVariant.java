@@ -19,6 +19,8 @@ import lombok.Setter;
 public class RespMinVariant {
 
 	private String id;
+	
+	private String title;
 
 	private RespProduct product;
 

@@ -15,14 +15,14 @@ public class RespCategory {
 
 	private int id;
 
-	private String name, description;
+	private String name, description, value;
 
 	private List<RespProduct> products = new ArrayList<>();
-	
+
 	private RespCategory parent;
-	
+
 	private List<RespCategory> subCats;
-	
+
 	private boolean subCat;
 
 	private Date date;

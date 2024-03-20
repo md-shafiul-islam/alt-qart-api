@@ -216,16 +216,21 @@ public class EsInitializerServicesImpl implements EsInitializerServices {
 
 	@Override
 	public Stakeholder initStakeholderViaUser(User dbUser, Date date) {
-
+		
 		Stakeholder stakeholder = new Stakeholder();
 		stakeholder.setActive(true);
 		stakeholder.setApprove(1);
-		stakeholder.setEmail(dbUser.getEmail());
-		stakeholder.setName(dbUser.getName());
-		stakeholder.setPhoneNo(dbUser.getPhoneNo());
-		stakeholder.setUser(dbUser);
+		
 		stakeholder.setPublicId(helperServices.getGenPublicId());
-		stakeholder.setGenId(helperServices.getUserGenId());
+		stakeholder.setGenId(helperServices.getStakeholderGenId());
+		
+		if(dbUser != null) {
+			stakeholder.setEmail(dbUser.getEmail());
+			stakeholder.setName(dbUser.getName());
+			stakeholder.setPhoneNo(dbUser.getPhoneNo());
+			stakeholder.setUser(dbUser);
+		}
+		
 		return stakeholder;
 	}
 	

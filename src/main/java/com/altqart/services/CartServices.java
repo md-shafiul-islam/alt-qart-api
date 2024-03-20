@@ -7,6 +7,7 @@ import com.altqart.model.User;
 import com.altqart.req.model.CartChooseReq;
 import com.altqart.req.model.CartItemReq;
 import com.altqart.req.model.CartReq;
+import com.altqart.req.model.CouponApplyReq;
 import com.altqart.resp.model.RespCart;
 
 public interface CartServices {
@@ -42,6 +43,10 @@ public interface CartServices {
 	public void toggleCartItem(CartChooseReq cartChoose, Map<String, Object> map);
 
 	public void toggleAllCartItem(CartChooseReq cartChoose, Map<String, Object> map);
+
+	public void getApplyCoupon(CouponApplyReq coupon, Map<String, Object> map);
+
+	public Cart getForOrderPlace(String cart);
 
 
 }

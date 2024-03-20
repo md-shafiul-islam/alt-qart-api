@@ -24,7 +24,7 @@ import lombok.Setter;
 public class ReturnType {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@OneToMany(cascade = CascadeType.ALL, mappedBy = "returnType")

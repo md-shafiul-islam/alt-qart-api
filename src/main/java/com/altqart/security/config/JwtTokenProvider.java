@@ -100,7 +100,8 @@ public class JwtTokenProvider {
 			} else {
 				throw new Exception("User token validate failed. User is null, Please contact administrator!");
 			}
-
+			
+			
 			return true;
 		} catch (SignatureException ex) {
 			log.info("Invalid JWT Signature");

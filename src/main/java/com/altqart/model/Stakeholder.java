@@ -38,23 +38,23 @@ import lombok.Setter;
 public class Stakeholder {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column(name = "gen_id")
 	private String genId;
-
+	
 	@Column(name = "public_id")
 	private String publicId;
 
-	@OneToOne
+	@OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user", referencedColumnName = "id")
 	private User user;
 
 	@OneToOne(mappedBy = "stakeholder")
 	private Cart cart;
 
-	@OneToMany(mappedBy = "stakeholder", cascade = CascadeType.ALL)
+	@OneToMany(mappedBy = "stakeholder", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	private List<Order> orders = new ArrayList<>();
 
 	@OneToMany(cascade = CascadeType.ALL, mappedBy = "stakeholder", fetch = FetchType.LAZY)
@@ -77,7 +77,7 @@ public class Stakeholder {
 	@Column(name = "name")
 	private String name;
 
-	@OneToMany(mappedBy = "stakeholder")
+	@OneToMany(mappedBy = "stakeholder", fetch = FetchType.LAZY)
 	List<Address> addresses;
 
 	@Column(name = "email")
@@ -86,7 +86,7 @@ public class Stakeholder {
 	@Column(name = "phone_no")
 	private String phoneNo;
 
-	@OneToMany(mappedBy = "stakeholder")
+	@OneToMany(mappedBy = "stakeholder", fetch = FetchType.LAZY)
 	private List<BankAccount> bankAccounts;
 
 	/**

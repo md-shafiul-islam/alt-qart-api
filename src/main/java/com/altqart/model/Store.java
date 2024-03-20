@@ -4,6 +4,7 @@ import java.util.List;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -26,23 +27,23 @@ import lombok.Setter;
 public class Store {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column(name = "public_id")
 	private String publicId;
 
-	@OneToOne
+	@OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user", referencedColumnName = "id")
 	private User user;
 
-	@OneToMany(mappedBy = "store")
+	@OneToMany(mappedBy = "store", fetch = FetchType.LAZY)
 	private List<BankAccount> banAccounts;
 
-	@OneToMany(mappedBy = "store")
+	@OneToMany(mappedBy = "store", fetch = FetchType.LAZY)
 	private List<Product> products;
 
-	@OneToMany(mappedBy = "store")
+	@OneToMany(mappedBy = "store", fetch = FetchType.LAZY)
 	private List<Order> orders;
 
 	@Column(name = "start_line")
@@ -50,6 +51,9 @@ public class Store {
 
 	@Column(name = "logo_url")
 	private String logoUrl;
+	
+	@Column(name="pathao_id")
+	private int pathaoId;
 
 	private String name;
 
@@ -60,7 +64,7 @@ public class Store {
 //	@OneToMany(mappedBy = "")
 //	private List<Address> addresses;
 
-	@OneToMany(mappedBy = "store")
+	@OneToMany(mappedBy = "store", fetch = FetchType.LAZY)
 	private List<DailyStatistics> dailyStatistics;
 
 	private String email;
@@ -69,7 +73,9 @@ public class Store {
 	@JoinColumn(name = "store_type")
 	private StoreType storeType;
 
-	@OneToMany(mappedBy = "store")
+	@OneToMany(mappedBy = "store", fetch = FetchType.LAZY)
 	private List<NamePhoneNo> namePhoneNos;
+	
+	
 
 }

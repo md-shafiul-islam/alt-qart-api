@@ -24,7 +24,7 @@ import lombok.Setter;
 public class MetaData {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column(length = 75)

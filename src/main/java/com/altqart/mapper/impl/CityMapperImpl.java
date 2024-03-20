@@ -14,6 +14,7 @@ import com.altqart.req.model.CitiesReq;
 import com.altqart.req.model.CityReq;
 import com.altqart.resp.model.RespCity;
 import com.altqart.resp.model.RespLocOption;
+import com.altqart.resp.model.RespNameCode;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -158,6 +159,19 @@ public class CityMapperImpl implements CityMapper {
 			}
 
 			return locOptions;
+		}
+		return null;
+	}
+	
+	@Override
+	public RespNameCode mapNameCode(City city) {
+
+		if(city != null) {
+			RespNameCode code = new RespNameCode();
+			code.setCode(city.getPathaoCode());
+			code.setId(city.getId());
+			code.setName(city.getName());
+			return code;
 		}
 		return null;
 	}

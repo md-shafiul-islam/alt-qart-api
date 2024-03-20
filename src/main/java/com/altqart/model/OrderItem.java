@@ -1,6 +1,5 @@
 package com.altqart.model;
 
-import java.math.BigDecimal;
 import java.util.Date;
 
 import jakarta.persistence.Column;
@@ -28,7 +27,7 @@ import lombok.Setter;
 public class OrderItem {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column(name = "public_id")
@@ -38,31 +37,20 @@ public class OrderItem {
 	@JoinColumn(name = "order_id", referencedColumnName = "id", insertable = true, updatable = true, nullable = true)
 	private Order order;
 
-	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "product", referencedColumnName = "id")
-	private Product product;
+	@ManyToOne
+	@JoinColumn(name = "variant", referencedColumnName = "id")
+	private Variant variant;
 
 	private double qty;
 
 	private double price;
+	
+	private boolean isReturn;
+	
+	private double returnQty;
 
 	@Column(name = "sub_total_item")
-	private BigDecimal subTotal;
-
-	@Column(name = "profit")
-	private double profit;
-
-	@Column(name = "total_profit")
-	private double totalProfit;
-
-	@Column(name = "loss")
-	private double loss;
-
-	@Column(name = "total_loss")
-	private double totalLoss;
-
-	@Column(name = "item_cost_og")
-	private double totalCostOfGoods;
+	private double subTotal;
 
 	@Column(name = "exp_warranty")
 	@Temporal(TemporalType.DATE)
@@ -73,14 +61,5 @@ public class OrderItem {
 	@Column(name = "date_group")
 	@Temporal(TemporalType.DATE)
 	private Date groupDate;
-
-	@Column(name = "purchase_id")
-	private String purchaseBarCode;
-
-	@Column(name = "return_status")
-	private int returnStatus;
-
-	@Column(name = "return_qty")
-	private double returnQty;
 
 }

@@ -1,9 +1,9 @@
 package com.altqart.helper.services;
+
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.Calendar;
 import java.util.Map;
-
 
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,10 +13,8 @@ import com.altqart.resp.model.RespAccessUser;
 
 import jakarta.servlet.http.HttpSession;
 
-
-
 public interface HelperServices {
-	
+
 	public User checkUserAccess(HttpSession httpSession);
 
 	public int getPageSize();
@@ -28,7 +26,6 @@ public interface HelperServices {
 	public String getStaticDir();
 
 	public String getUploadDir();
-	
 
 	/**
 	 * 
@@ -63,11 +60,12 @@ public interface HelperServices {
 	public User getUserByPrincipal(Principal principal);
 
 	public Map<String, RespAccessUser> getAccessMapByPrincipal(Principal principal);
-	
+
 	public String getGenaretedIDUsingDateTime();
-	
+
 	/**
 	 * Get Unic Id String
+	 * 
 	 * @return {@link String } Unic ID
 	 */
 	public String getUnicId();
@@ -96,11 +94,10 @@ public interface HelperServices {
 
 	public String getPurchaseBarCodeUsingBatch(String batchCode);
 
-	
 	public String getSubStringWithId(String text, int size, int id);
 
 	public String getStringReplaceAll(String text, String repText, String pattern);
-	
+
 	public double getCharStringToDouble(String text);
 
 	public String getLowerCase(String text);
@@ -110,7 +107,7 @@ public interface HelperServices {
 	public boolean isEqualAndFirstOneIsNotNull(String textOne, String textTwo);
 
 	public boolean isNotEqualAndFirstOneIsNotNull(String textOne, String textTwo);
-	
+
 	public String getGenaretedReceiptIDUsingDateTime();
 
 	public String getUserGenId();
@@ -124,5 +121,9 @@ public interface HelperServices {
 	public String getShortText(String text, int size);
 
 	public String getKeyById(String name, int code);
+
+	public String getInvIdbyStakeholderGenId();
+
+	public String getStakeholderGenId();
 
 }

@@ -1,6 +1,7 @@
 package com.altqart.mapper.impl;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +12,7 @@ import com.altqart.helper.services.HelperServices;
 import com.altqart.mapper.CartMapper;
 import com.altqart.model.Cart;
 import com.altqart.model.CartItem;
+import com.altqart.model.ImageGallery;
 import com.altqart.model.Product;
 import com.altqart.model.Variant;
 import com.altqart.req.model.CartItemReq;
@@ -62,7 +64,15 @@ public class CartMapperImp implements CartMapper {
 			RespCart respCart = new RespCart();
 
 			respCart.setCouponCode(cart.getCouponCode());
-			respCart.setDicountPar(cart.getDicountPar());
+			respCart.setChooseAll(cart.isChoose());
+			respCart.setCouponPar(cart.getCouponPar());
+			respCart.setChooseAmount(cart.getChooseAmount());
+			respCart.setChooseQty(cart.getChooseQty());
+			respCart.setCouponDiscount(cart.getCouponDiscount());
+
+			respCart.setGrandTotal(cart.getGrandTotal());
+
+			respCart.setDate(cart.getDate());
 			respCart.setDiscount(cart.getDiscount());
 			respCart.setId(cart.getPublicId());
 
@@ -76,7 +86,7 @@ public class CartMapperImp implements CartMapper {
 				respCart.setTotalQty(cart.getCartItems().size());
 			}
 
-			respCart.setChooseAll(cart.isChoose());
+			respCart.setUpdateDate(cart.getUpdateDate());
 			return respCart;
 		}
 
@@ -90,7 +100,6 @@ public class CartMapperImp implements CartMapper {
 
 			Cart cart = new Cart();
 			cart.setCouponCode(cartReq.getCouponCode());
-			cart.setDicountPar(cartReq.getDicountPar());
 			cart.setDiscount(cartReq.getDiscount());
 			cart.setPublicId(cartReq.getId());
 			cart.setTotalAmount(cartReq.getTotalAmount());
@@ -110,6 +119,8 @@ public class CartMapperImp implements CartMapper {
 	public List<CartItem> mapReqCartItem(CartReq cartReq, Cart cart) {
 		List<CartItem> cartItems = new ArrayList<>();
 
+		double totalAmount = 0, totalQty = 0, totalChooseAmount = 0, chooseQty = 0;
+
 		if (cartReq != null) {
 			for (CartItemReq itemReq : cartReq.getCartItemReqs()) {
 				CartItem cartItem = mapCartItem(itemReq);
@@ -117,7 +128,34 @@ public class CartMapperImp implements CartMapper {
 				cartItem.setCart(cart);
 
 				cartItems.add(cartItem);
+
+				double itemPrice = 0;
+				if (cartItem.getDiscountPrice() > 0) {
+					itemPrice = cartItem.getDiscountPrice();
+				} else {
+					itemPrice = cartItem.getPrice();
+				}
+				totalAmount = totalAmount + itemPrice;
+				totalQty = totalQty + cartItem.getQty();
+
+				if (cartItem.isChoose()) {
+					totalChooseAmount = totalChooseAmount + itemPrice;
+					chooseQty = chooseQty + cartItem.getQty();
+				}
+
 			}
+		}
+
+		cart.setChooseAmount(totalChooseAmount);
+		cart.setChooseQty(chooseQty);
+		if (cart.getTotalAmount() != totalAmount) {
+			cart.setTotalAmount(totalAmount);
+		}
+
+		cart.setGrandTotal(totalAmount);
+		if (cart.getChooseQty() > 0) {
+			cart.setGrandTotal(totalChooseAmount);
+
 		}
 
 		return cartItems;
@@ -149,6 +187,7 @@ public class CartMapperImp implements CartMapper {
 				cartItem.setSubTotal(cartItem.getPrice() * cartItem.getQty());
 			}
 
+			cartItem.setChoose(true);
 			return cartItem;
 		}
 
@@ -163,7 +202,7 @@ public class CartMapperImp implements CartMapper {
 			if (respCart != null) {
 
 				List<RespCartItem> respCartItems = new ArrayList<>();
-				double totalQty = 0, subTotal = 0;
+				double totalQty = 0, subTotal = 0, totalWeight = 0;
 
 				for (CartItem cartItem : cart.getCartItems()) {
 					totalQty = totalQty + cartItem.getQty();
@@ -171,10 +210,18 @@ public class CartMapperImp implements CartMapper {
 
 					RespCartItem respCartItem = mapRespCartItem(cartItem);
 
+					if (cartItem != null) {
+
+						if (respCartItem.getWeight() > 0) {
+							totalWeight = totalWeight + respCartItem.getWeight();
+						}
+					}
+
 					respCartItems.add(respCartItem);
 
 				}
 
+				respCart.setTotalWeight(totalWeight);
 				respCart.setTotalQty(totalQty);
 				respCart.setTotalAmount(cart.getTotalAmount());
 				respCart.setCartItems(respCartItems);
@@ -188,7 +235,6 @@ public class CartMapperImp implements CartMapper {
 					respCart.setTotalAmount(cart.getTotalAmount());
 				}
 
-				respCart.setDicountPar(cart.getDicountPar());
 				respCart.setDiscount(cart.getDiscount());
 			}
 
@@ -213,6 +259,22 @@ public class CartMapperImp implements CartMapper {
 				item.setProduct(cartItem.getProduct().getPublicId());
 				item.setTitle(cartItem.getProduct().getTitle());
 
+				if (cartItem.getProduct().getMeasurement() != null) {
+					item.setWeight(cartItem.getProduct().getMeasurement().getWeight());
+				}
+
+				if (cartItem.getProduct().getImages() != null) {
+
+					Iterator<ImageGallery> imageGallery = cartItem.getProduct().getImages().iterator();
+
+					ImageGallery image = imageGallery.next();
+
+					if (image != null) {
+						item.setImage(image.getLocation());
+					}
+
+				}
+
 			}
 
 			if (cartItem.getVariant() != null) {
@@ -227,7 +289,6 @@ public class CartMapperImp implements CartMapper {
 					item.setSize(cartItem.getVariant().getSize().getName());
 				}
 
-				item.setImage(cartItem.getVariant().getImageUrl());
 				item.setStkQty(cartItem.getVariant().getQty());
 			}
 

@@ -1,13 +1,5 @@
 package com.altqart.resp.model;
 
-import com.altqart.model.Cart;
-import com.altqart.model.Product;
-import com.altqart.model.Variant;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,15 +20,17 @@ public class RespCartItem {
 	private String cart;
 
 	private String image;
-	
+
 	private String title;
-	
+
 	private String size;
-	
+
 	private String color;
-	
+
+	private double weight;
+
 	private double stkQty;
-	
+
 	private double qty;
 
 	private double price;
@@ -44,6 +38,6 @@ public class RespCartItem {
 	private double subTotal;
 
 	private double discountPrice;
-	
+
 	private boolean isChoose;
 }

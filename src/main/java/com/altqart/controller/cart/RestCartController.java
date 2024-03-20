@@ -22,6 +22,7 @@ import com.altqart.model.User;
 import com.altqart.req.model.CartChooseReq;
 import com.altqart.req.model.CartItemReq;
 import com.altqart.req.model.CartReq;
+import com.altqart.req.model.CouponApplyReq;
 import com.altqart.resp.model.RespCart;
 import com.altqart.services.CartServices;
 
@@ -68,9 +69,9 @@ public class RestCartController {
 		String cartId = id;
 
 		if (!helperServices.isValidAndLenghtCheck(id, 34)) {
-			cartId = cartServices.getUserCartId();
+			return ResponseEntity.ok(map);
 		}
-
+		
 		RespCart respCart = cartServices.getRespCartById(cartId);
 
 		if (respCart != null) {
@@ -78,6 +79,26 @@ public class RestCartController {
 			map.put("status", true);
 			map.put("message", " Cart found by ID");
 		}
+		return ResponseEntity.ok(map);
+	}
+
+	@PostMapping(value = "/{id}/coupon")
+	public ResponseEntity<?> getApplyCouponCart(@PathVariable("id") String id, @RequestBody CouponApplyReq coupon) {
+
+		Map<String, Object> map = new HashMap<>();
+
+		map.put("response", null);
+		map.put("status", false);
+		map.put("message", " Coupon Apply failed");
+
+		if (helperServices.isValidAndLenghtCheck(id, 34)) {
+			cartServices.getApplyCoupon(coupon, map);
+			boolean status = (boolean) map.get("status");
+			if (!status) {
+				map.put("response", cartServices.getRespCartById(id));
+			}
+		}
+
 		return ResponseEntity.ok(map);
 	}
 
@@ -97,8 +118,6 @@ public class RestCartController {
 
 	@PostMapping(value = "/{id}/items")
 	public ResponseEntity<?> addCartItem(@RequestBody CartItemReq cart, @PathVariable("id") String id) {
-
-		log.info("addCartItem ");
 
 		Map<String, Object> map = new HashMap<>();
 
@@ -137,7 +156,6 @@ public class RestCartController {
 		map.put("response", null);
 		map.put("status", false);
 		map.put("message", " Cart Item decrement ...");
-		log.info(" Cart Item decrement failed");
 		if (helperServices.isValidAndLenghtCheck(id, 32)) {
 			cartServices.decrementCartItem(cart, map);
 		}
@@ -153,9 +171,7 @@ public class RestCartController {
 		map.put("response", null);
 		map.put("status", false);
 		map.put("message", " Cart Item Delete ...");
-		log.info(" Cart Item Delete ...");
 		if (helperServices.isValidAndLenghtCheck(id, 32)) {
-			log.info(" Cart Item Delete ... Valid Id");
 			cartServices.deleteCartItem(cart, map);
 		}
 
@@ -232,9 +248,6 @@ public class RestCartController {
 		map.put("response", null);
 		map.put("status", false);
 		map.put("message", " Update cart item failed");
-
-		log.info("Cart Item Choose PID " + id);
-		log.info("Cart Item Choose CID " + cartChoose.getId());
 
 		if (helperServices.isEqualAndFirstOneIsNotNull(id, cartChoose.getId())) {
 

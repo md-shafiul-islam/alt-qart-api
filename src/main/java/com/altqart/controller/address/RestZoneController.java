@@ -134,7 +134,10 @@ public class RestZoneController {
 	public ResponseEntity<?> addCityAllZone(@RequestBody ZonesCityReq zonesReq) {
 
 		Map<String, Object> map = new HashMap<>();
+		
+		log.info("All Zone Add run ...");
 
+		
 		map.put("response", null);
 		map.put("status", false);
 		map.put("message", "Add All Zone");

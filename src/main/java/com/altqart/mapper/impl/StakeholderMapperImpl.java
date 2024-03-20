@@ -598,9 +598,7 @@ public class StakeholderMapperImpl implements StakeholderMapper {
 		if (orderItem != null) {
 			SaleItem saleItem = new SaleItem();
 
-			if (orderItem.getProduct() != null) {
-
-			}
+			
 
 			return saleItem;
 		}

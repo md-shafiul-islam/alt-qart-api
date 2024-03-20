@@ -27,7 +27,7 @@ import lombok.Setter;
 public class BankAccountDebitRecord {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column(name = "public_id")

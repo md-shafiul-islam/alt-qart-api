@@ -25,4 +25,6 @@ public interface HelperConverterServices {
 	public double getDiscount(double discountPar, double amount);
 
 	public double getAmountUsingPercentageTotal(double percentage, double amount);
+
+	public double getRandomBetweenTwoNumbers(double min, double max);
 }

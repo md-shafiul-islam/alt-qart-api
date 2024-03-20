@@ -26,13 +26,20 @@ import lombok.Setter;
 public class Address {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column(name = "public_id")
 	private String publicId;
-	
+
+	@Column(name = "full_name")
 	private String fullName;
+
+	@Column(name = "phone_no")
+	private String phoneNo;
+
+	@Column(name = "phone_no2")
+	private String phoneNo2;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "stakeholder", referencedColumnName = "id")
@@ -54,13 +61,16 @@ public class Address {
 	@JoinColumn(name = "upazila", referencedColumnName = "id")
 	private Upazila upazila;
 
+	@Column(name = "full_address")
+	private String fullAddress;
+
 	@Column(name = "is_default")
 	private boolean isDefault;
 
 	@Column(name = "is_office")
 	private boolean isOffice;
 
-	@OneToMany(mappedBy = "address")
+	@OneToMany(mappedBy = "address", fetch = FetchType.LAZY)
 	private List<ShippingAddress> shippingAddresses;
 
 	@Column(name = "zip_code")

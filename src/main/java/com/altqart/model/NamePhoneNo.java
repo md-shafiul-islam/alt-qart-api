@@ -22,7 +22,7 @@ import lombok.Setter;
 public class NamePhoneNo {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 	
 	@ManyToOne

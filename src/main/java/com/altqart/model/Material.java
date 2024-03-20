@@ -23,7 +23,7 @@ import lombok.Setter;
 public class Material {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@ManyToMany(mappedBy = "materials")

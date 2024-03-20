@@ -27,7 +27,7 @@ import lombok.Setter;
 public class Cart {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column(name = "public_id")
@@ -41,15 +41,28 @@ public class Cart {
 	@OrderBy("id ASC")
 	private List<CartItem> cartItems;
 
-	private double dicountPar;
-
 	private double discount;
+
+	@Column(name = "total_amount")
+	private double totalAmount;
+
+	@Column(name = "choose_amount")
+	private double chooseAmount;
+
+	@Column(name = "choose_qty")
+	private double chooseQty;
 
 	@Column(name = "coupon_code")
 	private String couponCode;
 
-	@Column(name = "total_amount")
-	private double totalAmount;
+	@Column(name = "coupon_par")
+	private double couponPar;
+
+	@Column(name = "coupon_discount")
+	private double couponDiscount;
+
+	@Column(name = "grand_total")
+	private double grandTotal;
 
 	@Column(name = "total_qty")
 	private double totalQty;

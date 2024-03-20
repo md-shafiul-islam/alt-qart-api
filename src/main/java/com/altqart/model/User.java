@@ -46,25 +46,23 @@ public class User implements UserDetails {
 	private static final long serialVersionUID = 1L;
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column(name = "pub_id")
 	private String publicId;
 
-	@OneToOne(mappedBy = "user")
+	@OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
 	private Store store;
 
-	@OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
+	@OneToMany(cascade = CascadeType.ALL, mappedBy = "user", fetch = FetchType.LAZY)
 	private List<Order> orders = new ArrayList<>();
 
-
-	@OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
+	@OneToMany(cascade = CascadeType.ALL, mappedBy = "user", fetch = FetchType.LAZY)
 	private List<Paid> paids = new ArrayList<>();
 
-	@OneToMany(cascade = CascadeType.ALL, mappedBy = "approveUser")
+	@OneToMany(cascade = CascadeType.ALL, mappedBy = "approveUser", fetch = FetchType.LAZY)
 	private List<SaleReturnInvoice> saleReturnInvoices = new ArrayList<>();
-
 
 	@JsonManagedReference
 	@OneToMany(cascade = CascadeType.ALL, mappedBy = "user", fetch = FetchType.EAGER)
@@ -84,6 +82,15 @@ public class User implements UserDetails {
 
 	@Column(name = "email")
 	private String email;
+
+	@Column(name = "palec_token")
+	private String placeToken;
+
+	@Column(name = "auth_user")
+	private String authUser;
+
+	@Column(name = "generated_id")
+	private String generatedId;
 
 	@Column(name = "code")
 	private String code;

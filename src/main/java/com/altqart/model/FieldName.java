@@ -23,7 +23,7 @@ import lombok.Setter;
 public class FieldName {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column(name = "field_name")

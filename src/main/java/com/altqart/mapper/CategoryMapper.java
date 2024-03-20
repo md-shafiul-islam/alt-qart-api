@@ -23,4 +23,6 @@ public interface CategoryMapper {
 
 	public RespCategory mapRespCategoryOnly(Category category);
 
+	public void mapAllCatAndSubCatIds(Category category, List<Integer> ids);
+
 }

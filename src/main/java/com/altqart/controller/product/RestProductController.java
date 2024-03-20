@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.altqart.helper.services.HelperServices;
+import com.altqart.req.model.ProductCatReq;
 import com.altqart.req.model.ProductReq;
 import com.altqart.resp.model.RespDetailProduct;
 import com.altqart.resp.model.RespMinProduct;
@@ -45,17 +46,25 @@ public class RestProductController {
 		map.put("response", null);
 		map.put("status", false);
 		map.put("message", "Products not found");
-		
+
 		if (!helperServices.isNullOrEmpty(type)) {
 			if (helperServices.isEqual("min", type)) {
 				List<RespMinProduct> minProducts = productServices.getAllMinRespProduct(start, size);
-				
+
 				if (minProducts != null) {
 					map.put("response", minProducts);
 					map.put("status", true);
 					map.put("message", minProducts.size() + " Product found");
 				}
-				
+
+			}else if(helperServices.isEqual("rnd", type)) {
+				List<RespMinProduct> minProducts = productServices.getRandomMinRespProduct(start, size);
+
+				if (minProducts != null) {
+					map.put("response", minProducts);
+					map.put("status", true);
+					map.put("message", minProducts.size() + " Product found");
+				}
 			}
 		} else {
 
@@ -100,7 +109,7 @@ public class RestProductController {
 	}
 
 	@GetMapping(value = "/{id}")
-	public ResponseEntity<?> getAddProduct(@PathVariable("id") String id) {
+	public ResponseEntity<?> getProduct(@PathVariable("id") String id) {
 
 		Map<String, Object> map = new HashMap<>();
 		map.put("response", null);
@@ -114,6 +123,32 @@ public class RestProductController {
 			map.put("status", true);
 			map.put("message", "Product found by ID");
 		}
+
+		return ResponseEntity.ok(map);
+	}
+
+	@PostMapping(value = "/category")
+	public ResponseEntity<?> getProductSinglePage(@RequestBody ProductCatReq catReq) {
+
+		Map<String, Object> map = new HashMap<>();
+		map.put("response", null);
+		map.put("status", false);
+		map.put("message", "Product not found By Category");
+
+		productServices.getRespProductExceptCategory(catReq, map);
+
+		return ResponseEntity.ok(map);
+	}
+
+	@GetMapping(value = "/category/{value}")
+	public ResponseEntity<?> getProductSinglePage(@PathVariable("value") String value) {
+
+		Map<String, Object> map = new HashMap<>();
+		map.put("response", null);
+		map.put("status", false);
+		map.put("message", "Product not found By Category");
+
+		productServices.getAllRespMinProductByCategory(value, map);
 
 		return ResponseEntity.ok(map);
 	}

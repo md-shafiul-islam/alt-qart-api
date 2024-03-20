@@ -25,7 +25,7 @@ import lombok.Setter;
 public class TransactionRecord {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 	
 	@OneToOne(mappedBy = "transactionRecord")

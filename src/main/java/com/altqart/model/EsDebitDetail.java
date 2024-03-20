@@ -27,7 +27,7 @@ import lombok.Setter;
 public class EsDebitDetail {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@ManyToOne

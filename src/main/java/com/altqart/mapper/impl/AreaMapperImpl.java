@@ -18,6 +18,7 @@ import com.altqart.req.model.AreasReq;
 import com.altqart.req.model.AreasZReq;
 import com.altqart.resp.model.RespArea;
 import com.altqart.resp.model.RespLocOption;
+import com.altqart.resp.model.RespNameCode;
 import com.altqart.services.ZoneServices;
 
 @Service
@@ -116,6 +117,7 @@ public class AreaMapperImpl implements AreaMapper {
 					respAreas.add(respArea);
 				}
 			}
+			return respAreas;
 		}
 
 		return null;
@@ -218,6 +220,19 @@ public class AreaMapperImpl implements AreaMapper {
 		return null;
 	}
 
+	@Override
+	public RespNameCode mapNameCode(Area area) {
+		if (area != null) {
+			RespNameCode code = new RespNameCode();
+			code.setCode(area.getPathaoCode());
+			code.setId(area.getId());
+			code.setName(area.getName());
+			return code;
+		}
+
+		return null;
+	}
+
 	private RespLocOption mapRespOptionArea(Area area) {
 
 		if (area != null) {
@@ -239,7 +254,10 @@ public class AreaMapperImpl implements AreaMapper {
 			area.setName(areaReq.getName());
 			area.setPathaoCode(areaReq.getPathaoCode());
 			area.setValue(helperServices.getKeyById(areaReq.getName(), areaReq.getPathaoCode()));
-			area.setZone(zoneServices.getZoneByPathaoId(areaReq.getZone()));
+
+			if (areaReq.getZone() != null) {
+				area.setZone(zoneServices.getZoneByPathaoId(areaReq.getZone().getPathaoCode()));
+			}
 
 			return area;
 		}

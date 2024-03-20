@@ -51,4 +51,12 @@ public interface UserServices extends UserDetailsService {
 
 	public void signUpUser(UserReq user, Map<String, Object> map);
 
+	public void createEsPlaceholderUser(String empty, Map<String, Object> map);
+
+	public void getEsTokenBySequence(String id, Map<String, Object> map);
+
+	public User getUserByEsUserAuth(String id);
+
+	public User getUserByPlsToken(String esInf);
+
 }

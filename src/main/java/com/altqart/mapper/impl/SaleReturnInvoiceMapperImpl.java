@@ -217,14 +217,6 @@ public class SaleReturnInvoiceMapperImpl implements SaleReturnInvoiceMapper {
 			}
 
 			Product product = null;
-			if (orderItem.getProduct() != null) {
-
-				if (returnItemReq.getProduct() == orderItem.getProduct().getId()) {
-					product = orderItem.getProduct();
-				}
-			} else {
-				return null;
-			}
 
 			double vat = 0, discount = 0, itemsTotal = 0, subTotal = 0;
 
@@ -256,15 +248,6 @@ public class SaleReturnInvoiceMapperImpl implements SaleReturnInvoiceMapper {
 
 			item.setOrderItem(orderItem);
 
-			if (orderItem.getProfit() > 0) {
-				item.setProfit(orderItem.getProfit());
-				item.setTotalProfit(orderItem.getProfit() * orderItem.getQty());
-			}
-
-			if (orderItem.getLoss() > 0) {
-				item.setLoss(orderItem.getLoss());
-				item.setTotalLoss(orderItem.getLoss() * orderItem.getQty());
-			}
 			item.setPublicId(helperServices.getGenPublicId());
 			return item;
 

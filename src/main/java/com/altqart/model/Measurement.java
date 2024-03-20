@@ -22,13 +22,13 @@ import lombok.Setter;
 public class Measurement {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@OneToMany(mappedBy = "measurement")
 	private List<Product> products;
 
-	private double weight;
+	private double weight; // As KG
 
 	private double lenght;
 

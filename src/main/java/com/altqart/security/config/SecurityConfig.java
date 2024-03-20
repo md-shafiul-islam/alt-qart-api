@@ -29,15 +29,16 @@ public class SecurityConfig {
 	private static final String[] PUBLIC_MATCHERS = {
 
 			"/build/**", "/dist/**", "/plugins/**", "/asset-img/**", "/api/v1/users/login", "/uimages/**",
-			"/api/v1/users/sign-up", "/api/v1/products", "/api/v1/categories",
+			"/api/v1/users/sign-up", "/api/v1/products", "/api/v1/products/**", "/api/v1/categories",
+			"/api/v1/categories/**", "/api/v1/carts", "/api/v1/carts/**", "/api/v1/areas", "/api/v1/areas/**",
+			"/api/v1/cities", "/api/v1/cities/**", "/api/v1/zones", "/api/v1/zones/**", "/api/v1/addresses",
+			"/api/v1/addresses/**", "/api/v1/orders", "/api/v1/orders/**", "/api/v1/pathao/webhook",
+			"/api/v1/pathao/price"
 
 	};
 
 	@Autowired
 	private UserServices userSecurityServices;
-
-	@Autowired
-	private PasswordEncoder passwordEncoder;
 
 	@Autowired
 	private JwtAuthenticationEntryPoint unauthorizedHandler;
@@ -49,10 +50,11 @@ public class SecurityConfig {
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-		httpSecurity.cors().and().csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-				.authorizeRequests().requestMatchers(PUBLIC_MATCHERS).permitAll().anyRequest().authenticated();
+		httpSecurity.cors().and().csrf().disable().sessionManagement()
+				.sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().authorizeRequests()
+				.requestMatchers(PUBLIC_MATCHERS).permitAll().anyRequest().authenticated();
 
-		httpSecurity.httpBasic(basic->basic.authenticationEntryPoint(unauthorizedHandler));
+		httpSecurity.httpBasic(basic -> basic.authenticationEntryPoint(unauthorizedHandler));
 		httpSecurity.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
 		return httpSecurity.build();
@@ -64,7 +66,7 @@ public class SecurityConfig {
 
 		DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
 		authenticationProvider.setUserDetailsService(userSecurityServices);
-		authenticationProvider.setPasswordEncoder(passwordEncoder);
+		authenticationProvider.setPasswordEncoder(getPasswordEncoder());
 
 		return authenticationProvider;
 	}

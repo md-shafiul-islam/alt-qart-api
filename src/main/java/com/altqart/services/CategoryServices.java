@@ -33,4 +33,6 @@ public interface CategoryServices {
 
 	public List<RespCategory> getAllSubRespCategoryById(int id);
 
+	public List<Integer> getCategoryValueIds(String value);
+
 }

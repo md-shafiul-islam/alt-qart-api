@@ -1,5 +1,6 @@
 package com.altqart.services.impl;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -12,11 +13,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.altqart.helper.services.HelperAuthenticationServices;
+import com.altqart.helper.services.HelperConverterServices;
+import com.altqart.helper.services.HelperDateServices;
 import com.altqart.helper.services.HelperServices;
 import com.altqart.initializer.services.EsInitializerServices;
 import com.altqart.mapper.CartMapper;
 import com.altqart.model.Cart;
 import com.altqart.model.CartItem;
+import com.altqart.model.Coupon;
 import com.altqart.model.Product;
 import com.altqart.model.Stakeholder;
 import com.altqart.model.User;
@@ -25,8 +29,10 @@ import com.altqart.repository.CartRepository;
 import com.altqart.req.model.CartChooseReq;
 import com.altqart.req.model.CartItemReq;
 import com.altqart.req.model.CartReq;
+import com.altqart.req.model.CouponApplyReq;
 import com.altqart.resp.model.RespCart;
 import com.altqart.services.CartServices;
+import com.altqart.services.CouponServices;
 
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -37,6 +43,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class CartServicesImpl implements CartServices {
+
+	@Autowired
+	private CouponServices couponServices;
+
+	@Autowired
+	private HelperConverterServices converterServices;
+
+	@Autowired
+	private HelperDateServices dateServices;
 
 	@Autowired
 	private CartRepository cartRepository;
@@ -162,102 +177,130 @@ public class CartServicesImpl implements CartServices {
 	@Override
 	public void addCartItem(CartItemReq cartItem, Map<String, Object> map) {
 
+		log.info("Services Add TO Cart Item ...");
+
 		if (cartItem != null) {
 
-			Cart cart = getCartById(cartItem.getCart());
+			Cart cart = null;
 
-			CartItem item = cartMapper.mapCartItem(cartItem);
-			item.setCart(cart);
 			User user = authenticationServices.getCurrentUser();
 
-			if (user != null) {
-				Session session = sessionFactory.openSession();
-				Transaction transaction = null;
-				Date date = new Date();
-				try {
-					transaction = session.beginTransaction();
-					User dbUser = session.get(User.class, user.getId());
+			if (!helperServices.isNullOrEmpty(cartItem.getCart())) {
+				cart = getCartById(cartItem.getCart());
+			}
 
-					Stakeholder dbStakeholder = null;
+			Session session = sessionFactory.openSession();
+			Transaction transaction = null;
+			Date date = new Date();
+			try {
+				transaction = session.beginTransaction();
 
-					Cart dbCart = null;
-					boolean isCreate = false;
+				Stakeholder dbStakeholder = null;
+				User dbUser = null;
+				Cart dbCart = null;
 
-					if (item.getCart() == null) {
+				boolean isCreate = false;
 
-						if (dbUser.getStakeholder() == null) {
+				if (user != null) {
 
-							dbStakeholder = esInitializerServices.initStakeholderViaUser(dbUser, date);
-							session.persist(dbStakeholder);
+					dbUser = session.get(User.class, user.getId());
 
-							dbCart = esInitializerServices.initCart(date);
-							dbCart.setStakeholder(dbStakeholder);
-
-							session.persist(dbCart);
-
-							isCreate = true;
-						} else {
-
+					if (dbUser != null) {
+						if (dbUser.getStakeholder() != null) {
 							dbStakeholder = session.get(Stakeholder.class, dbUser.getStakeholder().getId());
 
-							if (dbStakeholder.getCart() != null) {
-								dbCart = session.get(Cart.class, dbStakeholder.getCart().getId());
+							if (dbStakeholder != null) {
 
-							} else {
-								dbCart = esInitializerServices.initCart(date);
-								dbCart.setStakeholder(dbStakeholder);
-
-								session.persist(dbCart);
-
-								isCreate = true;
+								if (dbStakeholder.getCart() != null) {
+									dbCart = session.get(Cart.class, dbStakeholder.getCart().getId());
+								}
 							}
-
 						}
 					}
+				}
 
-					if (!isCreate && item.getCart() != null) {
-						dbCart = session.get(Cart.class, item.getCart().getId());
+				if (dbStakeholder == null) {
+					dbStakeholder = esInitializerServices.initStakeholderViaUser(dbUser, date);
+					session.persist(dbStakeholder);
+				}
+
+				if (dbCart == null) {
+
+					if (cart != null) {
+						dbCart = session.get(Cart.class, cart.getId());
+					} else {
+						dbCart = esInitializerServices.initCart(date);
+						dbCart.setStakeholder(dbStakeholder);
+						session.persist(dbCart);
+						isCreate = true;
 					}
+				}
 
+				CartItem item = cartMapper.mapCartItem(cartItem);
+
+				double totalQty = 0, totalAmount = 0, discount = 0, totalChooseAmount = 0, chooseQty = 0;
+
+				if (isCreate) {
+					if (dbCart.getCartItems() == null) {
+						dbCart.setCartItems(new ArrayList<>());
+					}
+					item.setCart(dbCart);
+					dbCart.getCartItems().add(item);
+
+					totalAmount = item.getSubTotal();
+					totalChooseAmount = item.getSubTotal();
+					totalQty = item.getQty();
+					chooseQty = item.getQty();
+					discount = discount + (item.getPrice() - item.getDiscountPrice());
+
+					log.info("Cart Item Variant ID " + item.getVariant().getId());
+
+					session.persist(item);
+					map.put("message", "Cart Item Added");
+				} else {
 					boolean isExist = false;
-
-					double totalQty = 0, totalAmount = 0, discount = 0;
 
 					Product dbProduct = session.get(Product.class, item.getProduct().getId());
 					Variant dbVariant = session.get(Variant.class, item.getVariant().getId());
 
 					if (dbVariant != null && dbProduct != null) {
 
-						for (CartItem dbItem : dbCart.getCartItems()) {
+						if (dbCart.getCartItems() != null) {
+							for (CartItem dbItem : dbCart.getCartItems()) {
 
-							discount = discount + (dbItem.getPrice() - dbItem.getDiscountPrice());
+								discount = discount + (dbItem.getPrice() - dbItem.getDiscountPrice());
 
-							if (dbItem.getVariant() != null && dbItem.getProduct() != null) {
+								if (dbItem.getVariant() != null && dbItem.getProduct() != null) {
 
-								if (dbItem.getVariant().getId() == item.getVariant().getId()) {
-									isExist = true;
-									log.info("Get DB Item Qty " + dbItem.getQty());
-									if (dbItem.getQty() == item.getQty()) {
-										dbItem.setQty(dbItem.getQty() + 1);
-									} else {
-										double iQty = item.getQty() > 0 ? item.getQty() : 1;
-										dbItem.setQty(dbItem.getQty() + iQty);
+									if (dbItem.getVariant().getId() == item.getVariant().getId()) {
+										isExist = true;
 
+										if (dbItem.getQty() == item.getQty()) {
+											dbItem.setQty(dbItem.getQty() + 1);
+										} else {
+											double iQty = item.getQty() > 0 ? item.getQty() : 1;
+											dbItem.setQty(dbItem.getQty() + iQty);
+
+										}
+
+										double subTotal = dbItem.getDiscountPrice() > 0
+												? dbItem.getDiscountPrice() * dbItem.getQty()
+												: dbItem.getPrice() * dbItem.getQty();
+
+										dbItem.setSubTotal(subTotal);
+										session.merge(dbItem);
 									}
+								}
+								totalQty = dbItem.getQty() + totalQty;
+								totalAmount = totalAmount + dbItem.getSubTotal();
 
-									log.info("Get DB Item Qty After " + dbItem.getQty());
-
-									double subTotal = dbItem.getDiscountPrice() > 0
-											? dbItem.getDiscountPrice() * dbItem.getQty()
-											: dbItem.getPrice() * dbItem.getQty();
-
-									dbItem.setSubTotal(subTotal);
-									session.merge(dbItem);
+								if (dbItem.isChoose()) {
+									totalChooseAmount += dbItem.getSubTotal();
+									chooseQty += dbItem.getQty();
 								}
 							}
-							totalQty = dbItem.getQty() + totalQty;
-							totalAmount = totalAmount + dbItem.getSubTotal();
 						}
+
 					}
 
 					if (!isExist) {
@@ -270,38 +313,53 @@ public class CartServicesImpl implements CartServices {
 
 						session.persist(item);
 						dbCart.getCartItems().add(item);
+
+						if (item.isChoose()) {
+							totalChooseAmount += item.getSubTotal();
+							chooseQty += item.getQty();
+						}
 					}
-
-					dbCart.setDiscount(discount);
-					dbCart.setTotalAmount(totalAmount);
-					dbCart.setTotalQty(totalQty);
-
-					session.merge(dbCart);
-					map.put("response", cartMapper.mapRespCart(dbCart));
-					transaction.commit();
-					session.clear();
-
-					map.put("status", true);
-
 					if (isExist) {
 						map.put("message", "Cart Item Updated");
 					} else {
 						map.put("message", "Cart Item Added");
 					}
-
-				} catch (Exception e) {
-
-					if (transaction != null) {
-						transaction.rollback();
-					}
-
-					map.put("status", false);
-					map.put("response", null);
-					map.put("message", e.getMessage());
 				}
 
-				session.close();
+				dbCart.setDiscount(discount);
+				dbCart.setTotalAmount(totalAmount);
+				dbCart.setTotalQty(totalQty);
+				dbCart.setChooseAmount(totalChooseAmount);
+				dbCart.setChooseQty(chooseQty);
+
+				dbCart.setGrandTotal(totalAmount);
+
+				if (dbCart.getChooseQty() > 0) {
+					dbCart.setGrandTotal(totalChooseAmount);
+				}
+
+				session.merge(dbCart);
+				log.info("Services Add TO Cart Item Cart Creating ... Befor MapRespCart");
+				map.put("response", cartMapper.mapRespCart(dbCart));
+				log.info("Services Add TO Cart Item Cart Creating ... Befor Commit");
+				transaction.commit();
+				session.clear();
+
+				map.put("status", true);
+
+			} catch (Exception e) {
+
+				if (transaction != null) {
+					transaction.rollback();
+				}
+
+				map.put("status", false);
+				map.put("response", null);
+				map.put("message", e.getMessage());
 			}
+
+			session.close();
+
 		}
 
 	}
@@ -361,7 +419,7 @@ public class CartServicesImpl implements CartServices {
 
 		} catch (Exception e) {
 			log.info("getRespCartById " + e.getMessage());
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 
 		session.clear();
@@ -516,7 +574,7 @@ public class CartServicesImpl implements CartServices {
 				Date date = new Date();
 				Cart dbCart = session.get(Cart.class, cart.getId());
 
-				double totalAmount = 0, discount = 0, totalQty = 0;
+				double totalAmount = 0, discount = 0, totalQty = 0, totalChooseAmount = 0, chooseQty = 0;
 
 				for (CartItem item : dbCart.getCartItems()) {
 
@@ -535,16 +593,27 @@ public class CartServicesImpl implements CartServices {
 					}
 
 					double subTotal = price * item.getQty();
+
 					item.setSubTotal(subTotal);
-					totalAmount = totalAmount + subTotal;
-					totalQty = totalQty + item.getQty();
+					totalAmount += subTotal;
+					totalQty += item.getQty();
+					if (item.isChoose()) {
+						chooseQty += item.getQty();
+						totalChooseAmount += item.getSubTotal();
+					}
 					session.merge(item);
 				}
 
+				dbCart.setChooseQty(chooseQty);
 				dbCart.setDiscount(discount);
-				dbCart.setTotalQty(dbCart.getTotalQty() - 1);
+				dbCart.setTotalQty(totalQty);
 				dbCart.setTotalAmount(totalAmount);
 				dbCart.setUpdateDate(date);
+				dbCart.setChooseAmount(totalChooseAmount);
+				dbCart.setGrandTotal(totalAmount);
+				if (dbCart.getChooseQty() > 0) {
+					dbCart.setGrandTotal(totalChooseAmount);
+				}
 				session.merge(dbCart);
 
 				transaction.commit();
@@ -581,7 +650,7 @@ public class CartServicesImpl implements CartServices {
 
 				Cart dbCart = session.get(Cart.class, cart.getId());
 
-				double totalAmount = 0, discount = 0, totalQty = 0;
+				double totalAmount = 0, discount = 0, totalQty = 0, totalChooseAmount = 0, chooseQty = 0;
 				for (CartItem item : dbCart.getCartItems()) {
 					if (helperServices.isEqualAndFirstOneIsNotNull(cartItem.getId(), item.getPublicId())) {
 
@@ -602,6 +671,12 @@ public class CartServicesImpl implements CartServices {
 					item.setSubTotal(subTotal);
 					totalAmount = totalAmount + subTotal;
 					totalQty = totalQty + item.getQty();
+
+					if (item.isChoose()) {
+						totalChooseAmount += item.getSubTotal();
+						chooseQty += item.getQty();
+					}
+
 					session.merge(item);
 				}
 
@@ -609,6 +684,15 @@ public class CartServicesImpl implements CartServices {
 				dbCart.setUpdateDate(date);
 				dbCart.setTotalAmount(totalAmount);
 				dbCart.setTotalQty(totalQty);
+
+				dbCart.setChooseAmount(totalChooseAmount);
+				dbCart.setChooseQty(chooseQty);
+
+				dbCart.setGrandTotal(totalAmount);
+
+				if (dbCart.getChooseQty() > 0) {
+					dbCart.setGrandTotal(totalChooseAmount);
+				}
 
 				session.merge(dbCart);
 
@@ -668,20 +752,31 @@ public class CartServicesImpl implements CartServices {
 
 				dbCart = session.get(Cart.class, dbCart.getId());
 
-				double totalAmount = 0, discount = 0, totalQty = 0;
+				double totalAmount = 0, discount = 0, totalQty = 0, totalChooseAmount = 0, chooseQty = 0;
 				for (CartItem item : dbCart.getCartItems()) {
 
 					double lDiscount = item.getPrice() - item.getDiscountPrice();
 
-					totalQty = totalQty + item.getQty();
-					totalAmount = totalAmount + item.getSubTotal();
+					totalQty += item.getQty();
+					totalAmount += item.getSubTotal();
 					discount = discount + (lDiscount * item.getQty());
+
+					if (item.isChoose()) {
+						chooseQty += item.getQty();
+						totalChooseAmount += item.getSubTotal();
+					}
 				}
 
+				dbCart.setChooseQty(chooseQty);
 				dbCart.setDiscount(discount);
 				dbCart.setUpdateDate(date);
 				dbCart.setTotalAmount(totalAmount);
 				dbCart.setTotalQty(totalQty);
+				dbCart.setGrandTotal(totalAmount);
+				dbCart.setChooseAmount(totalChooseAmount);
+				if (dbCart.getChooseQty() > 0) {
+					dbCart.setGrandTotal(totalChooseAmount);
+				}
 
 				session.merge(dbCart);
 				transaction.commit();
@@ -706,6 +801,7 @@ public class CartServicesImpl implements CartServices {
 
 	@Override
 	public String getUserCartId() {
+
 		String cartId = null;
 		User user = authenticationServices.getCurrentUser();
 
@@ -820,6 +916,8 @@ public class CartServicesImpl implements CartServices {
 
 					boolean chooseAll = true;
 
+					double chooseQty = 0, chooseTotalAmount = 0;
+
 					if (dbCart.getCartItems() != null) {
 
 						for (CartItem item : dbCart.getCartItems()) {
@@ -836,13 +934,23 @@ public class CartServicesImpl implements CartServices {
 								item.setChoose(!item.isChoose());
 								session.merge(item);
 							}
-							
+
 							if (!item.isChoose()) {
 								chooseAll = false;
 							}
+
+							if (item.isChoose()) {
+								chooseQty += item.getQty();
+								chooseTotalAmount += item.getSubTotal();
+							}
 						}
 					}
+
 					dbCart.setChoose(chooseAll);
+					dbCart.setChooseAmount(chooseTotalAmount);
+					dbCart.setGrandTotal(chooseTotalAmount);
+					dbCart.setChooseQty(chooseQty);
+
 					session.merge(dbCart);
 					transaction.commit();
 					session.clear();
@@ -886,6 +994,17 @@ public class CartServicesImpl implements CartServices {
 					}
 
 					dbCart.setChoose(!dbCart.isChoose());
+
+					if (dbCart.isChoose()) {
+						dbCart.setChooseQty(dbCart.getTotalQty());
+						dbCart.setChooseAmount(dbCart.getTotalAmount());
+						dbCart.setGrandTotal(dbCart.getTotalAmount());
+					} else {
+						dbCart.setChooseQty(0);
+						dbCart.setChooseAmount(0);
+						dbCart.setGrandTotal(0);
+					}
+
 					session.merge(dbCart);
 					transaction.commit();
 					session.clear();
@@ -905,6 +1024,184 @@ public class CartServicesImpl implements CartServices {
 
 				session.clear();
 			}
+		}
+
+	}
+
+	@Override
+	public void getApplyCoupon(CouponApplyReq couponReq, Map<String, Object> map) {
+
+		if (couponReq != null) {
+
+			Coupon coupon = couponServices.getCouponByCode(couponReq.getCode());
+
+			Cart cart = getCartById(couponReq.getId());
+			double couponAmount = 0, couponPar = 0, discountAmount = 0;
+
+			if (cart != null && coupon != null) {
+
+				Session session = sessionFactory.openSession();
+				Transaction transaction = null;
+
+				try {
+					transaction = session.beginTransaction();
+					Cart dbCart = session.get(Cart.class, cart.getId());
+
+					if (!coupon.isValid()) {
+						throw new Exception("Coupon is In-Valid");
+					}
+
+					if (!coupon.isActive()) {
+						throw new Exception("Coupon usage exited");
+					}
+
+					Date date = new Date();
+					if (dateServices.isGreater(coupon.getExpireDate(), date)) {
+						throw new Exception("Coupon is Expireed");
+					}
+
+					// Check Amount ant Quantity
+					if (coupon.getApplyAmount() < 0 && coupon.getApplyQty() < 0) {
+						couponAmount = coupon.getAmount();
+						couponPar = coupon.getPercentage();
+
+					} else if (coupon.getApplyAmount() < 0 && coupon.getApplyQty() > 0) {
+
+						if (cart.getChooseQty() >= coupon.getApplyQty()) {
+							couponAmount = coupon.getAmount();
+							couponPar = coupon.getPercentage();
+						}
+
+					} else if (coupon.getApplyAmount() > 0 && coupon.getApplyQty() < 0) {
+						if (cart.getChooseAmount() >= coupon.getApplyAmount()) {
+							couponAmount = coupon.getAmount();
+							couponPar = coupon.getPercentage();
+						}
+					}
+
+					if (couponAmount > 0) {
+						discountAmount = couponAmount;
+					} else {
+
+						if (couponPar > 0) {
+
+							discountAmount = converterServices.getAmountUsingPercentageTotal(couponPar,
+									cart.getChooseAmount());
+						}
+					}
+
+					if (discountAmount > 0) {
+
+						dbCart.setCouponCode(couponReq.getCode());
+						dbCart.setCouponDiscount(discountAmount);
+						dbCart.setCouponPar(couponPar);
+						dbCart.setGrandTotal(dbCart.getChooseAmount() - discountAmount);
+
+					} else {
+						dbCart.setCouponCode(couponReq.getCode());
+						dbCart.setCouponDiscount(0);
+						dbCart.setCouponPar(0);
+						dbCart.setGrandTotal(dbCart.getChooseAmount());
+					}
+
+					session.merge(dbCart);
+
+					map.put("response", cartMapper.mapRespCart(dbCart));
+
+					transaction.commit();
+					session.clear();
+					map.put("status", true);
+					map.put("message", " Coupon Applyed");
+				} catch (Exception e) {
+
+					if (transaction != null) {
+						transaction.rollback();
+					}
+					map.put("status", false);
+					map.put("message", e.getMessage());
+					e.printStackTrace();
+					if (cart != null) {
+						restCartCoupon(cart.getId());
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	@Override
+	public Cart getForOrderPlace(String id) {
+
+		Cart cart = null;
+
+		Session session = sessionFactory.openSession();
+
+		try {
+
+			CriteriaBuilder criteriaBuilder = session.getCriteriaBuilder();
+			CriteriaQuery<Cart> criteriaQuery = criteriaBuilder.createQuery(Cart.class);
+			Root<Cart> root = criteriaQuery.from(Cart.class);
+
+			CriteriaQuery<Cart> select = criteriaQuery.select(root);
+
+			select.where(criteriaBuilder.equal(root.get("publicId"), id));
+			select.orderBy(criteriaBuilder.desc(root.get("id")));
+
+			Query<Cart> query = session.createQuery(select);
+			cart = query.getSingleResult();
+
+			if (cart != null) {
+
+				if (cart.getCartItems() != null) {
+					for (CartItem cartItem : cart.getCartItems()) {
+						if (cartItem.getVariant() != null) {
+							cartItem.getVariant().getId();
+						}
+					}
+				}
+
+			}
+
+			cart.getStakeholder();
+
+		} catch (Exception e) {
+			log.info("getOrdersByStatus " + e.getMessage());
+			e.printStackTrace();
+		}
+
+		session.clear();
+		session.close();
+
+		return cart;
+	}
+
+	private void restCartCoupon(int id) {
+
+		if (id > 0) {
+
+			Session session = sessionFactory.openSession();
+			Transaction transaction = null;
+
+			try {
+
+				transaction = session.beginTransaction();
+				Cart dbCart = session.get(Cart.class, id);
+
+				dbCart.setCouponDiscount(0);
+				dbCart.setCouponPar(0);
+				dbCart.setGrandTotal(dbCart.getChooseAmount());
+				session.merge(dbCart);
+				transaction.commit();
+				session.clear();
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			session.close();
 		}
 
 	}

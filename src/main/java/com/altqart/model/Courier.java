@@ -17,7 +17,7 @@ import lombok.Setter;
 public class Courier {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 }

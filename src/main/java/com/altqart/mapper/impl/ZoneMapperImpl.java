@@ -17,9 +17,13 @@ import com.altqart.req.model.ZoneReq;
 import com.altqart.req.model.ZonesCityReq;
 import com.altqart.req.model.ZonesReq;
 import com.altqart.resp.model.RespLocOption;
+import com.altqart.resp.model.RespNameCode;
 import com.altqart.resp.model.RespZone;
 import com.altqart.services.CitiyServices;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class ZoneMapperImpl implements ZoneMapper {
 
@@ -96,6 +100,10 @@ public class ZoneMapperImpl implements ZoneMapper {
 			respZone.setName(zone.getName());
 			respZone.setPathaoCode(zone.getPathaoCode());
 			respZone.setValue(zone.getValue());
+
+			if (zone.getCity() != null) {
+				respZone.setCity(cityMapper.mapRespCityOnly(zone.getCity()));
+			}
 
 			return respZone;
 		}
@@ -213,6 +221,20 @@ public class ZoneMapperImpl implements ZoneMapper {
 		return null;
 	}
 
+	@Override
+	public RespNameCode mapNameCode(Zone zone) {
+
+		if (zone != null) {
+			RespNameCode code = new RespNameCode();
+			code.setCode(zone.getPathaoCode());
+			code.setId(zone.getId());
+			code.setName(zone.getName());
+			return code;
+		}
+
+		return null;
+	}
+
 	private RespLocOption mapRespOption(Zone zone) {
 
 		if (zone != null) {
@@ -233,8 +255,21 @@ public class ZoneMapperImpl implements ZoneMapper {
 			Zone zone = new Zone();
 			zone.setName(zoneReq.getName());
 			zone.setPathaoCode(zoneReq.getPathaoCode());
-			zone.setValue(helperServices.getKeyById(zoneReq.getName(), zoneReq.getPathaoCode()));
-			zone.setCity(citiyServices.getCityByPathaoCode(zoneReq.getPtCity()));
+			if(!helperServices.isNullOrEmpty(zoneReq.getValue())) {
+				zone.setValue(zoneReq.getValue());
+			}else {
+				zone.setValue(helperServices.getKeyById(zoneReq.getName(), zoneReq.getPathaoCode()));
+			}
+			
+
+			log.info("City Zone " + zone.getCity());
+
+			log.info("zoneReq.getName() " + zoneReq.getName());
+
+			if (zoneReq.getCity() != null) {
+				City city = citiyServices.getCityByPathaoCode(zoneReq.getCity().getPathaoCode());
+				zone.setCity(city);
+			}
 
 			return zone;
 		}

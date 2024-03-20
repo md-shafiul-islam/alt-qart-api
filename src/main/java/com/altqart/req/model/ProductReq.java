@@ -34,11 +34,11 @@ public class ProductReq {
 
 	private int category;
 
-	private int brand;
+	private String brand;
 
 	private List<Integer> materials;
 
-	private List<ProductDescriptionReq> descritions;
+	private List<ProductDescriptionReq> descriptions;
 
 	private List<VariantReq> variants;
 

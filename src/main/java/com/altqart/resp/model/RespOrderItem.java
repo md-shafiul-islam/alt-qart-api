@@ -1,6 +1,5 @@
 package com.altqart.resp.model;
 
-import java.math.BigDecimal;
 import java.util.Date;
 
 import lombok.AllArgsConstructor;
@@ -13,37 +12,25 @@ import lombok.NoArgsConstructor;
 public class RespOrderItem {
 
 	private String id;
-	
+
 	private RespOrder order;
-	
-	private RespProduct product;
-	
+
+	private RespVariant variant;
+
 	private double qty;
-	
+
 	private double price;
-	
-	private BigDecimal subTotal;
-	
-	private double profit;
-	
-	private double totalProfit;
-	
-	private double loss;
-	
-	private double totalLoss;
-	
-	private double totalCostOfGoods;
-	
-	private Date expWarranty;
-	
-	private Date date;
-	
-	private Date groupDate;
-	
-	private String purchaseBarCode;
-	
-	private int returnStatus;
-	
+
+	private boolean isReturn;
+
 	private double returnQty;
-	
+
+	private double subTotal;
+
+	private Date expWarranty;
+
+	private Date date;
+
+	private Date groupDate;
+
 }

@@ -43,6 +43,7 @@ public class CategoryMapperImpl implements CategoryMapper {
 			respCategory.setName(category.getName());
 			respCategory.setSubCat(category.isSub());
 			respCategory.setId(category.getId());
+			respCategory.setValue(category.getValue());
 			return respCategory;
 		}
 
@@ -82,7 +83,6 @@ public class CategoryMapperImpl implements CategoryMapper {
 			category.setDescription(categoryReq.getDescription());
 			category.setName(categoryReq.getName());
 			category.setValue(categoryReq.getValue());
-			
 
 			return category;
 		}
@@ -120,6 +120,29 @@ public class CategoryMapperImpl implements CategoryMapper {
 	public Category mapCategoryImReq(List<CategoryReq> cats) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public void mapAllCatAndSubCatIds(Category category, List<Integer> ids) {
+
+		getAllCategoryIds(category, ids);
+
+	}
+
+	private void getAllCategoryIds(Category category, List<Integer> ids) {
+
+		if (category.isSub()) {
+			for (Category subCat : category.getSubCategories()) {
+
+				ids.add(subCat.getId());
+				if (subCat.isSub()) {
+					getAllCategoryIds(subCat, ids);
+				}
+			}
+		} else {
+			ids.add(category.getId());
+		}
+
 	}
 
 }

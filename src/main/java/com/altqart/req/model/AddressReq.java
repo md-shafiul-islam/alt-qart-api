@@ -8,8 +8,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AddressReq {
-
+		
 	private String fullName;
+	
+	private String phoneNoOpt;
+	
+	private String phoneNo;
+	
+	private String stakeholder;
 	
 	private String city;
 
@@ -20,6 +26,8 @@ public class AddressReq {
 	private String upazila;
 
 	private String zipCode;
+	
+	private String fullAddress;
 
 	private boolean isDefault;
 

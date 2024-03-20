@@ -3,6 +3,7 @@ package com.altqart.model;
 import java.util.List;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -22,7 +23,7 @@ import lombok.Setter;
 public class BankType {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	private String name;
@@ -31,6 +32,6 @@ public class BankType {
 
 	private String key;
 
-	@OneToMany(mappedBy = "bankType")
+	@OneToMany(mappedBy = "bankType", fetch = FetchType.LAZY)
 	private List<Bank> banks;
 }

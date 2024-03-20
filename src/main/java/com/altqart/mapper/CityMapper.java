@@ -7,6 +7,7 @@ import com.altqart.req.model.CitiesReq;
 import com.altqart.req.model.CityReq;
 import com.altqart.resp.model.RespCity;
 import com.altqart.resp.model.RespLocOption;
+import com.altqart.resp.model.RespNameCode;
 
 public interface CityMapper {
 
@@ -23,5 +24,7 @@ public interface CityMapper {
 	public List<RespCity> mapAllRespCity(List<City> cities);
 
 	public List<RespLocOption> mapAllOptionCity(List<City> cities);
+
+	public RespNameCode mapNameCode(City city);
 
 }

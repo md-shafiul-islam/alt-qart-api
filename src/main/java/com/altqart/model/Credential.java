@@ -26,7 +26,7 @@ import lombok.Setter;
 public class Credential {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@JsonBackReference

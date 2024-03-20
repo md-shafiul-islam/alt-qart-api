@@ -21,25 +21,31 @@ import com.altqart.helper.services.HelperServices;
 import com.altqart.initializer.services.EsInitializerServices;
 import com.altqart.mapper.SaleMapper;
 import com.altqart.mapper.StoreMapper;
-import com.altqart.model.EsCredit;
-import com.altqart.model.EsCreditDetail;
-import com.altqart.model.EsDebit;
-import com.altqart.model.EsDebitDetail;
+import com.altqart.model.Address;
+import com.altqart.model.Cart;
+import com.altqart.model.CartItem;
 import com.altqart.model.MethodAndTransaction;
+import com.altqart.model.NamePhoneNo;
 import com.altqart.model.Order;
 import com.altqart.model.OrderItem;
-import com.altqart.model.Product;
-import com.altqart.model.Stakeholder;
+import com.altqart.model.Parcel;
+import com.altqart.model.ParcelProvider;
+import com.altqart.model.ShippingAddress;
 import com.altqart.model.Status;
-import com.altqart.model.Store;
-import com.altqart.model.TransactionRecord;
 import com.altqart.model.User;
+import com.altqart.model.Variant;
 import com.altqart.repository.OrderRepository;
+import com.altqart.repository.StatusRepository;
+import com.altqart.req.model.OrderPlaceReq;
 import com.altqart.req.model.ReqDate;
+import com.altqart.resp.model.RespMinOrder;
 import com.altqart.resp.model.RespOrder;
 import com.altqart.resp.model.RespStore;
 import com.altqart.services.BankAccountServices;
+import com.altqart.services.CartServices;
 import com.altqart.services.OrderServices;
+import com.altqart.services.ParcelProviderServices;
+import com.altqart.services.ParcelServices;
 import com.altqart.services.StakeholderServices;
 import com.altqart.services.StatusServices;
 import com.altqart.services.StoreServices;
@@ -58,6 +64,9 @@ public class OrderServicesImpl implements OrderServices {
 
 	@Autowired
 	private OrderRepository orderRepository;
+
+	@Autowired
+	private CartServices cartServices;
 
 	@Autowired
 	private StatusServices statusServices;
@@ -79,8 +88,6 @@ public class OrderServicesImpl implements OrderServices {
 	@Autowired
 	private HelperDateServices helperDateServices;
 
-	private User user;
-
 	@Autowired
 	private StoreServices StoreServices;
 
@@ -100,6 +107,15 @@ public class OrderServicesImpl implements OrderServices {
 	private BankAccountServices bankAccountServices;
 
 	@Autowired
+	private ParcelProviderServices parcelProviderServices;
+
+	@Autowired
+	private ParcelServices parcelServices;
+
+	@Autowired
+	private StatusRepository statusRepository;
+
+	@Autowired
 	public void getSession(EntityManagerFactory factory) {
 
 		if (factory.unwrap(SessionFactory.class) == null) {
@@ -107,6 +123,17 @@ public class OrderServicesImpl implements OrderServices {
 		}
 
 		this.sessionFactory = factory.unwrap(SessionFactory.class);
+	}
+
+	@Override
+	public List<RespOrder> getAll(int start, int size) {
+
+		return getOrderByStatus(-1, start, size);
+	}
+
+	@Override
+	public List<RespMinOrder> getAllMin(int start, int size) {
+		return getRepMinOrderByStatus(-1, start, size);
 	}
 
 	@Override
@@ -131,20 +158,40 @@ public class OrderServicesImpl implements OrderServices {
 	}
 
 	@Override
-	public List<RespOrder> getAllOrderDelivered(int startAt, int pageSize) {
-
-		return getOrderByStatus(3, startAt, pageSize);
+	public List<RespMinOrder> getAllOrderPending(int startAt, int pageSize) {
+		return getRepMinOrderByStatus(1, startAt, pageSize);
 	}
 
 	@Override
-	public List<RespOrder> getAllOrderPending(int startAt, int pageSize) {
-		return getOrderByStatus(1, startAt, pageSize);
+	public List<RespMinOrder> getAllProcessesOrder(int startAt, int pageSize) {
+
+		return getRepMinOrderByStatus(2, startAt, pageSize);
 	}
 
 	@Override
-	public List<RespOrder> getAllProcessesOrder(int startAt, int pageSize) {
+	public List<RespMinOrder> getAllOrderShipped(int start, int size) {
+		return getRepMinOrderByStatus(3, start, size);
+	}
 
-		return getOrderByStatus(2, startAt, pageSize);
+	@Override
+	public List<RespMinOrder> getAllOrderDelivered(int startAt, int pageSize) {
+
+		return getRepMinOrderByStatus(4, startAt, pageSize);
+	}
+
+	@Override
+	public List<RespMinOrder> getAllOrderCanceled(int start, int size) {
+		return getRepMinOrderByStatus(5, start, size);
+	}
+
+	@Override
+	public List<RespMinOrder> getAllOrderFailedDelivery(int start, int size) {
+		return getRepMinOrderByStatus(6, start, size);
+	}
+
+	@Override
+	public List<RespMinOrder> getAllOrderReturns(int start, int size) {
+		return getRepMinOrderByStatus(7, start, size);
 	}
 
 	@Override
@@ -226,30 +273,38 @@ public class OrderServicesImpl implements OrderServices {
 	}
 
 	@Override
-	public boolean saveOrderViaAPI(Order order) {
+	public void getOrderPlace(OrderPlaceReq orderPlaceReq, Map<String, Object> map) {
 
-		boolean status = false;
-		log.info("Save Order Via API !!");
+		boolean status = true;
 
-		if (order != null) {
-//			if (order.getStore() == null) {
-//				order.setStore(StoreServices.getStoreByPublicId(order.getStoreId()));
-//			}
+		if (orderPlaceReq != null) {
+			Order order = saleMapper.mapPlaceOrder(orderPlaceReq);
+
+			Cart cart = cartServices.getCartById(orderPlaceReq.getCart());
 			Session session = sessionFactory.openSession();
 			Transaction transaction = null;
 
 			try {
+				transaction = session.beginTransaction();
+
+				if (cart == null) {
+					throw new Exception("Cart not found, Order place failed. Please try again");
+				}
+
+				if (order == null) {
+					throw new Exception("Corrupted, Order place failed. Please try again");
+				}
+
 				Date date = new Date();
 
 				if (order.getDate() == null) {
 					order.setDate(date);
 					order.setGrupeDate(date);
 				}
-				transaction = session.beginTransaction();
 
 				order.setStatus(session.get(Status.class, 1));
 
-				order.setPublicId(helperServices.getGenPublicId());
+				order.setStakeholder(cart.getStakeholder());
 
 				session.persist(order);
 
@@ -259,10 +314,67 @@ public class OrderServicesImpl implements OrderServices {
 						session.persist(methodTransaction);
 					}
 				}
+
+				if (order.getOrderItems() != null) {
+
+					for (OrderItem item : order.getOrderItems()) {
+						item.setDate(date);
+						item.setGroupDate(date);
+						item.setOrder(order);
+
+						session.persist(item);
+					}
+				}
+
+				if (order.getShippingAddress() != null) {
+					ShippingAddress shippingAddress = order.getShippingAddress();
+					shippingAddress.setOrder(order);
+					order.setShippingAddress(shippingAddress);
+					session.persist(shippingAddress);
+				}
+
+				if (cart != null) {
+					Cart dbCart = session.get(Cart.class, cart.getId());
+					List<CartItem> nCatCartItems = new ArrayList<>();
+
+					double totalAmount = 0, totalQty = 0;
+					if (dbCart.getCartItems() != null) {
+
+						for (CartItem cartItem : dbCart.getCartItems()) {
+
+							if (cartItem.isChoose()) {
+
+								CartItem dbCartItem = session.get(CartItem.class, cartItem.getId());
+								session.remove(dbCartItem);
+							} else {
+								nCatCartItems.add(cartItem);
+
+								double price = cartItem.getDiscountPrice() > 0 ? cartItem.getDiscountPrice()
+										: cartItem.getPrice();
+								totalAmount += price;
+								totalQty += cartItem.getQty();
+
+							}
+						}
+					}
+
+					dbCart.setCartItems(nCatCartItems);
+					dbCart.setChooseAmount(0);
+					dbCart.setChooseQty(0);
+					dbCart.setCouponDiscount(0);
+					dbCart.setCouponCode("");
+					dbCart.setCouponPar(0);
+					dbCart.setDiscount(0);
+					dbCart.setTotalAmount(totalAmount);
+					dbCart.setTotalQty(totalQty);
+
+					session.merge(dbCart);
+				}
+
 				transaction.commit();
-
 				status = true;
-
+				map.put("response", order.getInvNo());
+				map.put("message", "Order Place successfully");
 			} catch (Exception e) {
 				if (transaction != null) {
 					log.info("Order Roll Back !!");
@@ -277,16 +389,23 @@ public class OrderServicesImpl implements OrderServices {
 			session.close();
 		}
 
-		return status;
+		map.put("status", status);
+
 	}
 
 	@Override
-	public Map<String, Object> approveOrder(Order order, int i) {
-		user = helperAuthenticationServices.getCurrentUser();
+	public Map<String, Object> approveOrder(String orderId) {
+
+		User user = helperAuthenticationServices.getCurrentUser();
+		ParcelProvider parcelProvider = parcelProviderServices.getParcelProviderByKey("pathao");
+		Parcel parcel = null;
 		boolean status = false;
+
 		Map<String, Object> approve = new HashMap<>();
 		String message = null;
-		if (order != null) {
+		Order order = getOrderByPublicId(orderId);
+		Date date = new Date();
+		if (orderId != null) {
 			Session session = sessionFactory.openSession();
 			Transaction transaction = null;
 
@@ -295,152 +414,112 @@ public class OrderServicesImpl implements OrderServices {
 				transaction = session.beginTransaction();
 
 				Order dbOrder = session.get(Order.class, order.getId());
-				Status Ordertatus = session.get(Status.class, i);
 
-				Date date = dbOrder.getDate();
+				User dbUser = session.get(User.class, user.getId());
 
-				Stakeholder dbCustomer = null;
-
+				if (dbUser == null) {
+					throw new Exception("User Not found, Please, contact administrator");
+				}
 				if (dbOrder != null) {
 
-					// Stakeholder Credit and Debit
-					if (dbOrder.getStakeholder() != null) {
+					if (dbOrder.getStatus() != null) {
 
-						dbCustomer = session.get(Stakeholder.class, dbOrder.getStakeholder().getId());
+						if (dbOrder.getStatus().getId() == 1) {
+
+							Status ordertatus = session.get(Status.class, 2);
+							dbOrder.setStatus(ordertatus);
+
+						} else {
+							throw new Exception("Order Already Approved Or Shipped :)");
+						}
 					}
 
-					if (dbCustomer == null) {// Unknown Customer Sale Or Not Exist Customer Start
+					dbOrder.setUser(user);
 
-						// Unknown Customer Sale Or Not Exist Customer End
+					session.merge(dbOrder);
 
-					} else {// Exist Customer Or Known Customer Sale Calculation Start
+					updateProductStockByVariant(dbOrder.getOrderItems(), session);
 
-						double nCustomerTotalDebit = 0, nCustometTotalCredit = 0, prevCredit = 0, prevDebit = 0;
+				}
 
-						if (dbCustomer.getTotalDebitAmount() != null) {
-							prevDebit = dbCustomer.getTotalDebitAmount().doubleValue();
-//							nCustomerTotalDebit = dbCustomer.getTotalDebitAmount().doubleValue()
-//									+ dbOrder.getNetSaleAmount();
-						} else {
-//							nCustomerTotalDebit = dbOrder.getNetSaleAmount();
-						}
+				Address address = null;
+				if (dbOrder.getShippingAddress() != null) {
 
-						if (dbCustomer.getTotalCreditAmount() != null) {
-							prevCredit = dbCustomer.getTotalCreditAmount().doubleValue();
-//							nCustometTotalCredit = dbCustomer.getTotalCreditAmount().doubleValue()
-//									+ dbOrder.getPayAmount();
-						} else {
-//							nCustometTotalCredit = dbOrder.getPayAmount();
-						}
+					if (dbOrder.getShippingAddress().getAddress() != null) {
+						address = dbOrder.getShippingAddress().getAddress();
 
-						dbCustomer.setTotalCreditAmount(converterServices.getDoubleToBigDec(nCustometTotalCredit));
-						dbCustomer.setTotalDebitAmount(converterServices.getDoubleToBigDec(nCustomerTotalDebit));
-
-						if (nCustomerTotalDebit > nCustometTotalCredit) {
-//							dbOrder.setTotalDebit(nCustomerTotalDebit - nCustometTotalCredit);
-						} else {
-//							dbOrder.setTotalCredit(nCustometTotalCredit - nCustomerTotalDebit);
-						}
-
-						if (prevCredit > prevDebit) {
-							prevCredit = prevCredit - prevDebit;
-							prevDebit = 0;
-
-						} else {
-							prevDebit = prevDebit - prevCredit;
-							prevCredit = 0;
-						}
-
-						double netGrandTotal = 0;
-						log.info("Prev Cr " + prevCredit + " Prev Dr " + prevDebit + " Grand Total "
-								+ dbOrder.getGrandTotal());
-						if (prevCredit > 0) {
-							netGrandTotal = dbOrder.getGrandTotal() - prevCredit;
-						} else if (prevDebit > 0) {
-							netGrandTotal = dbOrder.getGrandTotal() + prevDebit;
-						}
-
-						log.info("Order Net Grand Total: " + netGrandTotal);
-
-						dbOrder.setNetGrandTotal(netGrandTotal);
-
-						if (dbCustomer.getDebit() != null) {
-//							stkDebit = session.get(EsDebit.class, dbCustomer.getDebit().getId());
-						}
-
-						if (dbCustomer.getCredit() != null) {
-//							stkCredit = session.get(EsCredit.class, dbCustomer.getCredit().getId());
-						}
-
-						// Calculating Sale Account Credit to Stakholder Debit Start
-
-//						if (stkDebit != null) {
-//							double nStkDebitAmount = stkDebit.getAmount() + dbOrder.getNetSaleAmount();
-//							stkDebit.setAmount(nStkDebitAmount);
-//							session.update(stkDebit);
-//						} else {
-//							stkDebit = esInitializerServices.initEsDebitByStakeholder(dbCustomer, date);
-//							stkDebit.setAmount(dbOrder.getNetSaleAmount());
-//							session.persist(stkDebit);
-//						}
-						// Calculating Sale Account Credit to Stakholder Debit End
-
-						// Stakeholder Debit & Sale Credit Not Null Start
-//						if (stkDebit != null && saleAccountCredit != null) {
-//
-//							insertBasicSaleAndCustomerRecord(session, dbOrder, date, saleAccountCredit, dbCustomer,
-//									stkDebit, saleCreditRecord);
-//							// Stakeholder Debit & Sale Credit Not Null Start
-//						} else {
-//							throw new Exception("Customer Debit & Sale Credit Not found !!");
-//						}
-
-//						if (dbOrder.getPayAmount() > 0) {// If Paid Any amount
-//
-//							cashDebit = initCashKnownCustomer(session, dbOrder, date, dbStore, cashAccount,
-//									cashDebit);
-//
-//							if (stkCredit != null) {
-//								double nStkCreditAmount = stkCredit.getAmount() + dbOrder.getPayAmount();
-//								stkCredit.setAmount(nStkCreditAmount);
-//								session.update(stkCredit);
-//							} else {
-//								stkCredit = esInitializerServices.initEsCreditByStakeholder(dbCustomer, date);
-//								stkCredit.setAmount(dbOrder.getPayAmount());
-//								session.persist(stkCredit);
-//							}
-//
-//							if (stkCredit != null && cashDebit != null) {
-//
-//								knownCustomerSaleRecord(session, dbOrder, date, dbCustomer, stkCredit, cashDebit);
-//							} else {
-//								throw new Exception("Customer Paid Credit & Cash Debit not found");
-//							}
-//
-//						}
-
-						//
-//						TransactionRecord saleTransactionRecord = esInitializerServices
-//								.initSaleTransactionRecord(saleAccount, stkDebit, date);
-//						saleTransactionRecord.setAmount(dbOrder.getNetSaleAmount());
-//						saleTransactionRecord.setNarration("Using Sale Inv. No. " + dbOrder.getInvNo());
-//						session.persist(saleTransactionRecord);
-
-						session.update(dbCustomer);
 					}
-					// Exist Customer Or Known Customer Sale Calculation End
-					// Update Stock Status
-					// Stock Status End
+				}
 
-					// Capital Update using sale profit and loss start
+				if (address == null) {
+					throw new Exception("Order Address not found");
+				}
 
-					// Capital Update using sale profit and loss end
+				parcel = new Parcel();
+				parcel.setAmountToCollect((int) dbOrder.getCodAmount());
 
-					// Bank Transaction If Have
-					bankAccountServices.updateHaveAnyAccountTransactions(dbOrder.getMethodTransactions(), session,
-							date);
-					session.update(dbOrder);
+				parcel.setDate(date);
+				parcel.setDateGroup(date);
 
+				String itemDescription = "";
+				double totalWeight = 0;
+				for (OrderItem orderItem : dbOrder.getOrderItems()) {
+					String name = "";
+					if (orderItem.getVariant() != null) {
+						if (orderItem.getVariant().getProduct() != null) {
+							name = orderItem.getVariant().getProduct().getTitle();
+							if (orderItem.getVariant().getProduct().getMeasurement() != null) {
+								totalWeight += orderItem.getVariant().getProduct().getMeasurement().getWeight();
+							}
+
+						}
+					}
+
+					itemDescription += "Title: " + name + " Qty: " + orderItem.getQty() + " Price: "
+							+ orderItem.getPrice() + " Item Total:" + orderItem.getSubTotal() + "\n";
+				}
+
+				itemDescription += "Total Quantity: " + dbOrder.getTotalQty() + " Total Price: "
+						+ dbOrder.getSubTotal();
+				parcel.setItemDescription(itemDescription);
+				parcel.setItemQuantity(dbOrder.getTotalQty());
+				parcel.setItemWeight(totalWeight);
+				parcel.setMerchantOrderId(dbOrder.getInvNo());
+				parcel.setOrder(dbOrder);
+				parcel.setParcelProvider(parcelProvider);
+				parcel.setRecipientAddress(address.getFullAddress() + " (Phone No2.): " + address.getPhoneNo2());
+				parcel.setRecipientArea(address.getArea().getPathaoCode());
+				parcel.setRecipientCity(address.getCity().getPathaoCode());
+				parcel.setRecipientName(address.getFullName());
+				parcel.setRecipientPhone(address.getPhoneNo());
+				parcel.setRecipientZone(address.getZone().getPathaoCode());
+				parcel.setSenderName(user.getStore().getName());
+				parcel.setPublicId(helperServices.getGenPublicId());
+				parcel.setItemType(2);
+				String senderPhone = "01602507785";
+				int count = 0;
+				if (dbUser.getStore().getNamePhoneNos() != null) {
+
+					for (NamePhoneNo namePhone : dbUser.getStore().getNamePhoneNos()) {
+						if (namePhone != null) {
+
+							if (count == 0) {
+								senderPhone = namePhone.getPhoneNo();
+							}
+						}
+					}
+
+				}
+
+				parcel.setSenderPhone(senderPhone);
+				parcel.setSpecialInstruction(dbOrder.getShippingAddress().getNote());
+				parcel.setStoreId(dbUser.getStore().getPathaoId());
+				parcel.setParcelProvider(parcelProvider);
+				session.persist(parcel);
+
+				if (parcel != null) {
+					dbOrder.setParcelCreate(true);
+					session.merge(dbOrder);
 				}
 
 				transaction.commit();
@@ -453,8 +532,11 @@ public class OrderServicesImpl implements OrderServices {
 				if (transaction != null) {
 					transaction.rollback();
 				}
+
+				log.info("Sale Approve failed " + e.getMessage());
+
 				e.printStackTrace();
-				log.info("Sale Approve " + e.getMessage());
+
 				message = e.getMessage();
 			}
 
@@ -462,9 +544,174 @@ public class OrderServicesImpl implements OrderServices {
 		}
 
 		approve.put("status", status);
-		approve.put("message", message);
+		approve.put("message", message + " Parcel Create Failed");
+		if (parcel != null) {
+			parcelServices.createPathaoParcel(parcel, approve);
+		}
 
 		return approve;
+
+	}
+
+	@Override
+	public void updateOrderStatus(String id, String statusKey, Map<String, Object> map) {
+
+		Status status = getStatusByKey(statusKey);
+
+		if (status != null && !helperServices.isNullOrEmpty(id)) {
+
+			Order order = getOrderByPublicId(id);
+
+			if (order != null) {
+				Session session = sessionFactory.openSession();
+				Transaction transaction = null;
+
+				try {
+
+					transaction = session.beginTransaction();
+
+					Status dbStatus = session.get(Status.class, status.getId());
+					Order dbOrder = session.get(Order.class, order.getId());
+
+					if (helperServices.isEqual(statusKey, "cancel") && dbOrder.getStatus().getId() != 1) {
+						throw new Exception("This Order cant't cancel please contact administrator");
+					}
+
+					dbOrder.setStatus(dbStatus);
+
+					session.merge(dbOrder);
+
+					transaction.commit();
+
+					map.put("status", true);
+					map.put("message", "Update Order to " + dbStatus.getName());
+					map.put("response", null);
+
+				} catch (Exception e) {
+
+					if (transaction != null) {
+						transaction.rollback();
+					}
+					e.printStackTrace();
+					map.put("status", false);
+					map.put("message", "Update Order Status failed " + e.getMessage());
+				}
+			}
+		}
+
+	}
+
+	private Status getStatusByKey(String statusKey) {
+
+		Optional<Status> optional = statusRepository.getStatusByValue(statusKey);
+
+		if (optional.isPresent() && !optional.isEmpty()) {
+			return optional.get();
+		}
+
+		return null;
+	}
+
+	@Override
+	public void getSaleReturnApprove(String id, Map<String, Object> map) {
+
+		Order order = getOrderByPublicId(id);
+
+		if (order != null) {
+
+			Session session = sessionFactory.openSession();
+			Transaction transaction = null;
+
+			try {
+
+				transaction = session.beginTransaction();
+
+				Order dbOrder = session.get(Order.class, order.getId());
+
+				if (dbOrder.getStatus() != null) {
+					if (helperServices.isEqual(dbOrder.getStatus().getValue(), "return")) {
+						dbOrder.setReturnStatus(1);
+
+						updateOrderStockViaReturn(dbOrder.getOrderItems(), session);
+					}
+				}
+
+				session.merge(dbOrder);
+
+				transaction.commit();
+
+				session.clear();
+
+				map.put("status", true);
+				map.put("message", "Order Return Approved");
+			} catch (Exception e) {
+
+				if (transaction != null) {
+					transaction.rollback();
+				}
+
+				e.printStackTrace();
+
+				map.put("status", false);
+				map.put("message", e.getMessage());
+			}
+
+			session.close();
+		}
+
+	}
+
+	@Override
+	public void getOrderFaileldDeliveryApprove(String id, Map<String, Object> map) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void updateOrderStockViaReturn(List<OrderItem> orderItems, Session session) throws Exception {
+
+		if (orderItems != null) {
+
+			for (OrderItem orderItem : orderItems) {
+
+				Variant dbVariant = session.get(Variant.class, orderItem.getVariant().getId());
+
+				if (orderItem.isReturn()) {
+					if (orderItem.getQty() <= orderItem.getReturnQty()) {
+						dbVariant.setQty(dbVariant.getQty() + orderItem.getReturnQty());
+					} else {
+						throw new Exception("Returnt Order item Quntity Not Match");
+					}
+
+				}
+
+				session.merge(dbVariant);
+
+			}
+		}
+
+	}
+
+	private void updateProductStockByVariant(List<OrderItem> orderItems, Session session) {
+
+		if (orderItems != null) {
+			for (OrderItem orderItem : orderItems) {
+
+				if (orderItem != null) {
+
+					if (orderItem.getVariant() != null) {
+						Variant dbVariant = session.get(Variant.class, orderItem.getVariant().getId());
+
+						if (orderItem.getQty() > 0) {
+							dbVariant.setQty(dbVariant.getQty() - orderItem.getQty());
+						}
+
+						session.merge(dbVariant);
+					}
+
+				}
+
+			}
+		}
 
 	}
 
@@ -734,7 +981,7 @@ public class OrderServicesImpl implements OrderServices {
 			orderItem = session.get(OrderItem.class, id);
 
 			if (orderItem != null) {
-				orderItem.getProduct();
+				orderItem.getVariant();
 
 			} else {
 				System.out.println("Get Order Item By ID");
@@ -762,6 +1009,7 @@ public class OrderServicesImpl implements OrderServices {
 	/**
 	 * @param offset   0
 	 * @param pageSize 10
+	 * @param isAdmin
 	 * @param status
 	 * @return
 	 */
@@ -782,11 +1030,17 @@ public class OrderServicesImpl implements OrderServices {
 
 			CriteriaQuery<Order> select = criteriaQuery.select(root);
 
-			select.where(criteriaBuilder.equal(root.get("status").get("id"), staus));
+			if (staus >= 0) {
+				select.where(criteriaBuilder.equal(root.get("status").get("id"), staus));
+			}
+
 			select.orderBy(criteriaBuilder.desc(root.get("id")));
 			TypedQuery<Order> typedQuery = session.createQuery(select);
-			typedQuery.setFirstResult(offset);
-			typedQuery.setMaxResults(pageSize);
+
+			if (pageSize > 0) {
+				typedQuery.setFirstResult(offset);
+				typedQuery.setMaxResults(pageSize);
+			}
 
 			Order = typedQuery.getResultList();
 
@@ -805,6 +1059,68 @@ public class OrderServicesImpl implements OrderServices {
 		session.clear();
 		session.close();
 		return respOrder;
+	}
+
+	/**
+	 * @param offset   0
+	 * @param pageSize 10
+	 * @param isAdmin
+	 * @param status
+	 * @return
+	 */
+	private List<RespMinOrder> getRepMinOrderByStatus(int staus, int offset, int pageSize) {
+
+		pageSize = pageSize > 0 ? pageSize : 500;
+
+		List<Order> orders = null;
+		List<RespMinOrder> respOrders = null;
+
+		Session session = sessionFactory.openSession();
+		
+		log.info("getRepMinOrderByStatus "+ staus);
+
+
+		try {
+
+			CriteriaBuilder criteriaBuilder = session.getCriteriaBuilder();
+			CriteriaQuery<Order> criteriaQuery = criteriaBuilder.createQuery(Order.class);
+			Root<Order> root = criteriaQuery.from(Order.class);
+
+			CriteriaQuery<Order> select = criteriaQuery.select(root);
+
+			if (staus >= 0) {
+				select.where(criteriaBuilder.equal(root.get("status").get("id"), staus));
+			}
+
+			select.orderBy(criteriaBuilder.desc(root.get("id")));
+			TypedQuery<Order> typedQuery = session.createQuery(select);
+
+			if (pageSize > 0) {
+				typedQuery.setFirstResult(offset);
+				typedQuery.setMaxResults(pageSize);
+			}
+
+			orders = typedQuery.getResultList();
+
+			if (orders != null) {
+
+				log.info("Order By Status Befor Map Size: " + orders.size());
+
+				respOrders = saleMapper.mapAllRespMinOrder(orders);
+
+			} else {
+				System.out.println("Get Order Not found ");
+
+			}
+
+		} catch (Exception e) {
+			log.info("getOrderByStatus " + e.getMessage());
+			e.printStackTrace();
+		}
+
+		session.clear();
+		session.close();
+		return respOrders;
 	}
 
 	@Override

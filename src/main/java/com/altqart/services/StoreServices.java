@@ -30,7 +30,7 @@ public interface StoreServices {
 
 	public RespStore getRespStoreById(String id);
 
-	public List<RespStore> getAllStore(int i, int start, int size);
+	public List<RespStore> getAllStore(int start, int size);
 
 	public void update(StoreReq StoreReq, Map<String, Object> map);
 
@@ -53,6 +53,8 @@ public interface StoreServices {
 	public void removeStoreNamePhone(String id, NamePhoneNoReq namePhoneNo, Map<String, Object> map);
 
 	public List<RespStoreType> getAllRespStoreType();
+
+	public void getAddStore(StoreReq storeReq, Map<String, Object> map);
 
 
 }

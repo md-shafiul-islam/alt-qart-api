@@ -23,7 +23,7 @@ import lombok.Setter;
 public class CartItem {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column(name = "public_id")
@@ -33,7 +33,7 @@ public class CartItem {
 	@JoinColumn(name = "product", referencedColumnName = "id")
 	private Product product;
 
-	@OneToOne
+	@ManyToOne
 	@JoinColumn(name = "variant", referencedColumnName = "id")
 	private Variant variant;
 

@@ -22,10 +22,10 @@ import lombok.Setter;
 public class ItemColor {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
-	@OneToOne
+	@ManyToOne
 	@JoinColumn(name = "product", referencedColumnName = "id")
 	private Product product;
 

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AreaZReq {
 
-	private int zone;
+	private TempZoneReq zone;
 
 	private int pathaoCode;
 
@@ -18,4 +18,8 @@ public class AreaZReq {
 	private boolean isHome;
 
 	private boolean isPickup;
+	
+	private String value;
+	
+	
 }

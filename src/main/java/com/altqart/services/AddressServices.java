@@ -1,8 +1,8 @@
 package com.altqart.services;
 
-import java.util.List;
 import java.util.Map;
 
+import com.altqart.model.Address;
 import com.altqart.req.model.AddressReq;
 import com.altqart.resp.model.SearchWordReq;
 
@@ -19,5 +19,9 @@ public interface AddressServices {
 	public void getAllSearchSuggestion(SearchWordReq words, Map<String, Object> map);
 
 	public void getStakeholderAddress(Map<String, Object> map);
+
+	public Address getAddressById(String address);
+
+	public void getStakeholderAddressById(String id, Map<String, Object> map);
 
 }

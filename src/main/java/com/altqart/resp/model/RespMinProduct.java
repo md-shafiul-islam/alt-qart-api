@@ -23,6 +23,8 @@ public class RespMinProduct {
 	private String title;
 
 	private String bnTitle;
+	
+	private RespImageGallery image;
 
 	List<RespProductDescription> descriptions;
 

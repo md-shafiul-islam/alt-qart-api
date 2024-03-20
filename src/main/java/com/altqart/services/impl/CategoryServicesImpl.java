@@ -1,8 +1,11 @@
 package com.altqart.services.impl;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -21,6 +24,7 @@ import com.altqart.services.CategoryServices;
 
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaBuilder.In;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import lombok.extern.slf4j.Slf4j;
@@ -349,6 +353,48 @@ public class CategoryServicesImpl implements CategoryServices {
 
 		return respCategories;
 
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Integer> getCategoryValueIds(String value) {
+
+		List<Integer> ids = new ArrayList<>();
+
+		Session session = sessionFactory.openSession();
+
+		try {
+
+			CriteriaBuilder criteriaBuilder = session.getCriteriaBuilder();
+			CriteriaQuery<Category> criteriaQuery = (CriteriaQuery<Category>) criteriaBuilder
+					.createQuery(Category.class);
+
+			Root<Category> root = (Root<Category>) criteriaQuery.from(Category.class);
+
+			criteriaQuery.select(root);
+
+			criteriaQuery.where(criteriaBuilder.equal(root.get("value"), value));
+
+			Query<Category> query = session.createQuery(criteriaQuery);
+
+			Category category = query.getSingleResult();
+
+			if (category != null) {
+				ids.add(category.getId());
+				categoryMapper.mapAllCatAndSubCatIds(category, ids);
+			}
+
+			session.clear();
+		} catch (Exception e) {
+
+			log.info("Get Category By Value " + e.getMessage());
+
+//			e.printStackTrace();
+		}
+
+		session.close();
+
+		return ids;
 	}
 
 }

@@ -41,7 +41,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 //				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(null, null);
 
-				log.debug("Admin User EndPoint ...");
 				User user = userService.getUserByPublicID(userId);
 
 				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,

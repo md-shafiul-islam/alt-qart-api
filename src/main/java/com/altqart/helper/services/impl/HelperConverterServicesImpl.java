@@ -3,6 +3,7 @@ package com.altqart.helper.services.impl;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -103,5 +104,14 @@ public class HelperConverterServicesImpl implements HelperConverterServices {
 	public double getAmountUsingPercentageTotal(double percentage, double amount) {
 		double percentageAmount = (amount * percentage);
 		return percentageAmount / 100;
+	}
+
+	@Override
+	public double getRandomBetweenTwoNumbers(double min, double max) {
+
+		double dif = max - min;
+		double value = Math.random() * dif;
+
+		return value + min;
 	}
 }

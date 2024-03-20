@@ -53,13 +53,13 @@ public class CitiyServicesImpl implements CitiyServices {
 	public City getCityByKey(String city) {
 
 		Optional<City> optional = cityRepository.getCityByKey(city);
-		
-		if(optional.isPresent() && !optional.isEmpty()) {
+
+		if (optional.isPresent() && !optional.isEmpty()) {
 			return optional.get();
 		}
 		return null;
 	}
-	
+
 	@Override
 	public void getAll(Map<String, Object> map, int start, int size, int type) {
 
@@ -82,14 +82,14 @@ public class CitiyServicesImpl implements CitiyServices {
 			}
 
 			List<City> cities = typedQuery.getResultList();
-			
-			if(type == 1) {
+
+			if (type == 1) {
 				map.put("response", cityMapper.mapAllRespCity(cities));
-				
-			}else if(type == 2){
+
+			} else if (type == 2) {
 				map.put("response", cityMapper.mapAllOptionCity(cities));
-			}else{
-				
+			} else {
+
 				map.put("response", cityMapper.mapAllRespCityOnly(cities));
 			}
 
@@ -148,6 +148,7 @@ public class CitiyServicesImpl implements CitiyServices {
 			}
 			transaction.commit();
 			session.clear();
+			map.put("status", true);
 		} catch (Exception e) {
 
 			if (transaction != null) {

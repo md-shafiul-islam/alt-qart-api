@@ -12,10 +12,13 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
+import org.hibernate.resource.jdbc.LogicalConnection;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.relational.core.sql.OrderBy;
 import org.springframework.stereotype.Service;
 
 import com.altqart.helper.services.HelperAuthenticationServices;
+import com.altqart.helper.services.HelperConverterServices;
 import com.altqart.helper.services.HelperServices;
 import com.altqart.mapper.ProductMapper;
 import com.altqart.model.Brand;
@@ -35,18 +38,23 @@ import com.altqart.model.User;
 import com.altqart.model.Variant;
 import com.altqart.repository.ProductRepository;
 import com.altqart.req.model.ItemColorReq;
+import com.altqart.req.model.ProductCatReq;
 import com.altqart.req.model.ProductReq;
 import com.altqart.req.model.SpecificationReq;
 import com.altqart.req.model.VariantReq;
 import com.altqart.resp.model.RespDetailProduct;
 import com.altqart.resp.model.RespMinProduct;
 import com.altqart.resp.model.RespProduct;
+import com.altqart.services.BrandServices;
+import com.altqart.services.CategoryServices;
 import com.altqart.services.ProductServices;
 
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaBuilder.In;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Root;
 import lombok.extern.slf4j.Slf4j;
 
@@ -67,6 +75,15 @@ public class ProductServicesImpl implements ProductServices {
 
 	@Autowired
 	private HelperAuthenticationServices authenticationServices;
+
+	@Autowired
+	private BrandServices brandServices;
+
+	@Autowired
+	private CategoryServices categoryServices;
+
+	@Autowired
+	private HelperConverterServices converterServices;
 
 	@Autowired
 	public void getSession(EntityManagerFactory factory) {
@@ -423,12 +440,22 @@ public class ProductServicesImpl implements ProductServices {
 
 				Date date = new Date();
 
-				User dbUser = session.get(User.class, user.getId());
+				User dbUser = null;
+
+				if (user != null) {
+					dbUser = session.get(User.class, user.getId());
+				} else {
+					dbUser = session.get(User.class, 1);
+				}
 
 				Product product = inittProduct(productReq, session);
 				product.setCreateDate(date);
 				product.setUpdateDate(date);
-				product.setStore(dbUser.getStore());
+
+				if (dbUser != null) {
+					product.setStore(dbUser.getStore());
+				}
+
 				session.persist(product);
 
 				if (product.getDescriptions() != null) {
@@ -492,14 +519,22 @@ public class ProductServicesImpl implements ProductServices {
 
 				for (Variant variant : product.getVariants()) {
 
-					log.info("Variant Qty " + variant.getQty() + " Price " + variant.getPrice());
 					variant.setProduct(product);
+
+					if (variant.getDicountPrice() > 0) {
+						variant.setDicount(true);
+					} else {
+						variant.setDicount(false);
+					}
+
 					session.persist(variant);
 				}
 
-				for (Specification specification : product.getSpecifications()) {
-					specification.setProduct(product);
-					session.persist(specification);
+				if (product.getSpecifications() != null) {
+					for (Specification specification : product.getSpecifications()) {
+						specification.setProduct(product);
+						session.persist(specification);
+					}
 				}
 
 				transaction.commit();
@@ -525,6 +560,7 @@ public class ProductServicesImpl implements ProductServices {
 	private Product inittProduct(ProductReq productReq, Session session) throws Exception {
 
 		Product product = productMapper.mapProductReq(productReq);
+		Brand brand = brandServices.getBrandByPublicId(productReq.getBrand());
 
 		if (product != null) {
 
@@ -535,7 +571,13 @@ public class ProductServicesImpl implements ProductServices {
 				product.setAliasName(aliasName);
 			}
 
-			Brand dbBrand = session.get(Brand.class, productReq.getBrand());
+			product.setAvgRating(converterServices.getRandomBetweenTwoNumbers(4.2, 5));
+
+			Brand dbBrand = null;
+
+			if (brand != null) {
+				dbBrand = session.get(Brand.class, brand.getId());
+			}
 
 			if (dbBrand == null) {
 				throw new Exception("Product Brand not found");
@@ -698,5 +740,146 @@ public class ProductServicesImpl implements ProductServices {
 	}
 
 	// End Variant
+
+	@Override
+	public void getRespProductExceptCategory(ProductCatReq catReq, Map<String, Object> map) {
+
+		if (catReq != null) {
+
+			if (catReq.isStatus()) {
+				map.put("message", "Product not found By Except Category");
+			} else {
+				map.put("message", "Product not found By Category");
+			}
+		}
+
+		List<RespMinProduct> respProducts = new ArrayList<>();
+		Session session = sessionFactory.openSession();
+
+		try {
+
+			CriteriaBuilder criteriaBuilder = session.getCriteriaBuilder();
+			CriteriaQuery<Product> criteriaQuery = criteriaBuilder.createQuery(Product.class);
+
+			Root<Product> root = criteriaQuery.from(Product.class);
+
+			criteriaQuery.select(root);
+
+			if (catReq.isStatus()) {
+				criteriaQuery.where(criteriaBuilder.notEqual(root.get("category").get("id"), catReq.getId()));
+			} else {
+				criteriaQuery.where(criteriaBuilder.equal(root.get("category").get("id"), catReq.getId()));
+			}
+
+			TypedQuery<Product> typedQuery = session.createQuery(criteriaQuery);
+
+			if (catReq.getSize() > 0) {
+				typedQuery.setFirstResult(catReq.getStart());
+				typedQuery.setMaxResults(catReq.getSize());
+			}
+
+			List<Product> products = typedQuery.getResultList();
+
+			if (products != null) {
+				respProducts = productMapper.mapAllMinRespProductDetals(products);
+
+				map.put("response", respProducts);
+				map.put("status", true);
+
+				if (catReq.isStatus()) {
+					map.put("message", respProducts.size() + " Except Category Product(s) found");
+				} else {
+					map.put("message", respProducts.size() + " Product(s) found By Category");
+				}
+			}
+
+			session.clear();
+
+		} catch (Exception e) {
+
+			log.info("getAllProducts " + e.getMessage());
+			e.printStackTrace();
+
+		}
+		session.close();
+
+	}
+
+	@Override
+	public void getAllRespMinProductByCategory(String value, Map<String, Object> map) {
+
+		List<Integer> categoryIds = categoryServices.getCategoryValueIds(value);
+
+		log.info("Categories " + categoryIds);
+
+		List<RespMinProduct> respProducts = new ArrayList<>();
+		Session session = sessionFactory.openSession();
+
+		try {
+
+			CriteriaBuilder criteriaBuilder = session.getCriteriaBuilder();
+			CriteriaQuery<Product> criteriaQuery = criteriaBuilder.createQuery(Product.class);
+
+			Root<Product> root = criteriaQuery.from(Product.class);
+			In<Integer> inClause = criteriaBuilder.in(root.get("category").get("id"));
+			for (Integer id : categoryIds) {
+				inClause.value(id);
+			}
+			criteriaQuery.select(root).where(inClause);
+
+			Query<Product> query = session.createQuery(criteriaQuery);
+			List<Product> products = query.getResultList();
+
+			if (products != null) {
+				List<RespMinProduct> minProducts = productMapper.mapAllMinRespProductDetals(products);
+
+				if (minProducts != null) {
+					map.put("message", minProducts.size() + " Product found by category");
+					map.put("response", minProducts);
+					map.put("status", true);
+				}
+			}
+			session.clear();
+
+		} catch (Exception e) {
+
+			log.info("getAllProducts " + e.getMessage());
+			e.printStackTrace();
+
+		}
+		session.close();
+
+	}
+
+	@Override
+	public List<RespMinProduct> getRandomMinRespProduct(int start, int size) {
+		List<RespMinProduct> respProducts = new ArrayList<>();
+		Session session = sessionFactory.openSession();
+
+		if (size <= 0) {
+			size = 6;
+		}
+		try {
+//			SELECT * FROM product ORDER BY rand() LIMIT 3
+			List<Product> products = session.createNativeQuery("select * from product ORDER BY rand() ", Product.class)
+					.setMaxResults(size).getResultList();
+
+			if (products != null) {
+
+				respProducts = productMapper.mapAllMinRespProductDetals(products);
+
+			}
+			session.clear();
+
+		} catch (Exception e) {
+
+			log.info("getAllProducts " + e.getMessage());
+			e.printStackTrace();
+
+		}
+		session.close();
+
+		return respProducts;
+	}
 
 }

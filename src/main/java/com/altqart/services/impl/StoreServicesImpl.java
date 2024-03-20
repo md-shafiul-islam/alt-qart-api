@@ -154,7 +154,7 @@ public class StoreServicesImpl implements StoreServices {
 	}
 
 	@Override
-	public List<RespStore> getAllStore(int i, int start, int size) {
+	public List<RespStore> getAllStore(int start, int size) {
 		List<RespStore> respStores = null;
 
 		Session session = sessionFactory.openSession();
@@ -696,6 +696,24 @@ public class StoreServicesImpl implements StoreServices {
 				e.printStackTrace();
 			}
 
+		}
+
+	}
+
+	@Override
+	public void getAddStore(StoreReq storeReq, Map<String, Object> map) {
+
+		Store store = storeMapper.mapStore(storeReq);
+
+		if (store != null) {
+
+			storeRepository.save(store);
+
+			if (store.getId() > 0) {
+				map.put("status", true);
+				map.put("message", "Store Added successfully");
+				map.put("response", null);
+			}
 		}
 
 	}

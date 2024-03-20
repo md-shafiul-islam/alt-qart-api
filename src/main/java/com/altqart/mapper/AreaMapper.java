@@ -9,6 +9,7 @@ import com.altqart.req.model.AreasReq;
 import com.altqart.req.model.AreasZReq;
 import com.altqart.resp.model.RespArea;
 import com.altqart.resp.model.RespLocOption;
+import com.altqart.resp.model.RespNameCode;
 
 public interface AreaMapper {
 
@@ -27,5 +28,7 @@ public interface AreaMapper {
 	public List<Area> mapAllZArea(AreasZReq areasReq);
 
 	public List<RespLocOption> mapAllRespOptionArea(List<Area> resultList);
+
+	public RespNameCode mapNameCode(Area area);
 
 }

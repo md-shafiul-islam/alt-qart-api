@@ -1,7 +1,9 @@
 package com.altqart.services.impl;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -10,21 +12,33 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.altqart.helper.services.HelperAuthenticationServices;
+import com.altqart.helper.services.HelperServices;
 import com.altqart.mapper.AddressMapper;
 import com.altqart.model.Address;
+import com.altqart.model.Order;
+import com.altqart.model.Stakeholder;
 import com.altqart.model.User;
 import com.altqart.repository.AddressRepository;
 import com.altqart.req.model.AddressReq;
-import com.altqart.resp.model.RespAddress;
+import com.altqart.resp.model.RespMinAddress;
+import com.altqart.resp.model.RespOrder;
 import com.altqart.resp.model.SearchWordReq;
 import com.altqart.services.AddressServices;
+import com.altqart.services.StakeholderServices;
 
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 public class AddressServicesImpl implements AddressServices {
+
+	@Autowired
+	private HelperServices helperServices;
 
 	@Autowired
 	private AddressRepository addressRepository;
@@ -34,6 +48,9 @@ public class AddressServicesImpl implements AddressServices {
 
 	@Autowired
 	private HelperAuthenticationServices authenticationServices;
+
+	@Autowired
+	private StakeholderServices stakeholderServices;
 
 	private SessionFactory sessionFactory;
 
@@ -56,11 +73,12 @@ public class AddressServicesImpl implements AddressServices {
 	@Override
 	public void add(AddressReq addressReq, Map<String, Object> map) {
 
-		User user = authenticationServices.getCurrentUser();
+		Stakeholder stakeholder = stakeholderServices.getStakeholderByPublicId(addressReq.getStakeholder());
 
-		if (addressReq != null && user != null) {
+		if (addressReq != null && stakeholder != null) {
 
 			Address address = addressMapper.mapAddress(addressReq);
+			address.setStakeholder(stakeholder);
 
 			Session session = sessionFactory.openSession();
 			Transaction transaction = null;
@@ -68,20 +86,37 @@ public class AddressServicesImpl implements AddressServices {
 			try {
 				transaction = session.beginTransaction();
 
-				User dbUser = session.get(User.class, user.getId());
+				Stakeholder dbStakeholder = session.get(Stakeholder.class, stakeholder.getId());
 
-				if (dbUser.getStakeholder() != null) {
+				if (!helperServices.isNullOrEmpty(dbStakeholder.getName())) {
+					dbStakeholder.setName(address.getFullName());
+					dbStakeholder.setPhoneNo(address.getPhoneNo());
 
-					address.setStakeholder(dbUser.getStakeholder());
-					session.persist(address);
+					session.merge(dbStakeholder);
+
 				}
+
+				if (dbStakeholder.getUser() == null) {
+					Date date = new Date();
+					User user = new User();
+					user.setPhoneNo(address.getPhoneNo());
+					user.setEnabled(1);
+					user.setName(dbStakeholder.getName());
+					user.setPublicId(helperServices.getGenPublicId());
+					user.setCode(helperServices.getUserGenId());
+					user.setStakeholder(dbStakeholder);
+					user.setUdate(date);
+					user.setDate(date);
+					session.persist(user);
+				}
+				session.persist(address);
 
 				transaction.commit();
 				session.clear();
-				
+
 				map.put("status", true);
 				map.put("message", "Address added successfully");
-			
+
 			} catch (Exception e) {
 
 				if (transaction != null) {
@@ -89,6 +124,7 @@ public class AddressServicesImpl implements AddressServices {
 				}
 				e.printStackTrace();
 				map.put("status", false);
+				map.put("message", "Address added failed");
 			}
 
 			session.close();
@@ -112,8 +148,8 @@ public class AddressServicesImpl implements AddressServices {
 					if (dbUser.getStakeholder() != null) {
 						if (dbUser.getStakeholder().getAddresses() != null) {
 
-							List<RespAddress> addresses = addressMapper
-									.mapAllRespAddress(dbUser.getStakeholder().getAddresses());
+							List<RespMinAddress> addresses = addressMapper
+									.mapAllRespAddressMin(dbUser.getStakeholder().getAddresses());
 
 							map.put("status", true);
 							map.put("message", "Stakeholder Address found");
@@ -155,6 +191,56 @@ public class AddressServicesImpl implements AddressServices {
 
 			e.printStackTrace();
 		}
+
+	}
+
+	@Override
+	public Address getAddressById(String address) {
+
+		Optional<Address> optional = addressRepository.getAddressByPublicId(address);
+
+		if (optional.isPresent() && !optional.isEmpty()) {
+			return optional.get();
+		}
+
+		return null;
+	}
+
+	@Override
+	public void getStakeholderAddressById(String id, Map<String, Object> map) {
+
+		Session session = sessionFactory.openSession();
+
+		try {
+
+			CriteriaBuilder criteriaBuilder = session.getCriteriaBuilder();
+			CriteriaQuery<Address> criteriaQuery = criteriaBuilder.createQuery(Address.class);
+			Root<Address> root = criteriaQuery.from(Address.class);
+
+			CriteriaQuery<Address> select = criteriaQuery.select(root);
+
+			select.where(criteriaBuilder.equal(root.get("stakeholder").get("publicId"), id));
+
+			select.orderBy(criteriaBuilder.desc(root.get("id")));
+			TypedQuery<Address> typedQuery = session.createQuery(select);
+
+			List<Address> addresses = typedQuery.getResultList();
+
+			if (addresses != null) {
+
+				map.put("response", addressMapper.mapAllRespAddressMin(addresses));
+				map.put("status", true);
+				map.put("message", " Address found by Stakeholder");
+			}
+
+		} catch (Exception e) {
+
+			map.put("status", false);
+			map.put("message", e.getMessage());
+		}
+
+		session.clear();
+		session.close();
 
 	}
 

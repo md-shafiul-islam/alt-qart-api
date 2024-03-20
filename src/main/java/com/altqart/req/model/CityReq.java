@@ -22,4 +22,5 @@ public class CityReq {
 
 	@JsonAlias("city_id")
 	private int pathaoCode;
+
 }

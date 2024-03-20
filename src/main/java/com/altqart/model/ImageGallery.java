@@ -24,7 +24,7 @@ import lombok.Setter;
 public class ImageGallery {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column
@@ -38,7 +38,7 @@ public class ImageGallery {
 
 	@Column(length = 205)
 	private String location;
-
+	
 	@ManyToMany(mappedBy = "images")
 	private Set<Product> product = new HashSet<>();
 

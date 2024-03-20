@@ -3,6 +3,7 @@ package com.altqart.mapper.impl;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,7 @@ import com.altqart.req.model.SpecificationReq;
 import com.altqart.req.model.VariantReq;
 import com.altqart.resp.model.RespColor;
 import com.altqart.resp.model.RespDetailProduct;
+import com.altqart.resp.model.RespImageGallery;
 import com.altqart.resp.model.RespItemColor;
 import com.altqart.resp.model.RespItemSize;
 import com.altqart.resp.model.RespMeasurementStandard;
@@ -100,7 +102,7 @@ public class ProductMapperImpl implements ProductMapper {
 
 			product.setMetaDatas(metaDataMapper.mapProductMetaDatas(productReq.getMetaDatas()));
 
-			product.setDescriptions(mapProductDescriptions(productReq.getDescritions()));
+			product.setDescriptions(mapProductDescriptions(productReq.getDescriptions()));
 
 			return product;
 
@@ -372,8 +374,23 @@ public class ProductMapperImpl implements ProductMapper {
 				minProduct.setVariant(getSingleVarianViaMinProduct(product.getVariants()));
 			}
 
+			minProduct.setImage(getImageforRespProduct(product.getImages()));
+
 			return minProduct;
 
+		}
+
+		return null;
+	}
+
+	private RespImageGallery getImageforRespProduct(Set<ImageGallery> images) {
+
+		if (images != null) {
+			Optional<ImageGallery> optional = images.stream().findFirst();
+
+			if (optional.isPresent() && !optional.isEmpty()) {
+				return imageGalleryMapper.mapRespImage(optional.get());
+			}
 		}
 
 		return null;

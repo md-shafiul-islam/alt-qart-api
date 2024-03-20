@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 public class MeasurementStandard {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 	
 	private String name;

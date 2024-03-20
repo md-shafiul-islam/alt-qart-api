@@ -30,7 +30,7 @@ import lombok.Setter;
 public class BankAccount {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@Column(name = "public_id")
@@ -46,11 +46,11 @@ public class BankAccount {
 					@JoinColumn(name = "store", referencedColumnName = "id") })
 	private Store store;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user", referencedColumnName = "id")
 	private User user;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "stakeholder", referencedColumnName = "id")
 	private Stakeholder stakeholder;
 
@@ -75,15 +75,15 @@ public class BankAccount {
 	@Column(name = "credit_balance")
 	private double creditBalance;
 
-	@OneToOne(mappedBy = "bankAccount")
+	@OneToOne(mappedBy = "bankAccount", fetch = FetchType.LAZY)
 	private BankAccountCredit credit;
 
-	@OneToOne(mappedBy = "bankAccount")
+	@OneToOne(mappedBy = "bankAccount", fetch = FetchType.LAZY)
 	private BankAccountDebit debit;
 
 	@Column(name = "note")
 	private String note;
-	
+
 	private int approve;
 
 	private boolean active;

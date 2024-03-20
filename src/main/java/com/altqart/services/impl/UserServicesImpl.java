@@ -13,6 +13,7 @@ import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,7 @@ import com.altqart.model.Stakeholder;
 import com.altqart.model.User;
 import com.altqart.repository.UserRepositry;
 import com.altqart.req.model.UserReq;
+import com.altqart.resp.model.EsInitInf;
 import com.altqart.resp.model.RespEsUser;
 import com.altqart.resp.model.RespUser;
 import com.altqart.services.UserServices;
@@ -49,7 +51,6 @@ public class UserServicesImpl implements UserServices {
 	@Autowired
 	private HelperServices helperServices;
 
-	@Autowired
 	private PasswordEncoder passwordEncoder;
 
 	@Autowired
@@ -68,6 +69,14 @@ public class UserServicesImpl implements UserServices {
 		}
 
 		this.sessionFactory = factory.unwrap(SessionFactory.class);
+	}
+
+	private void initPasswordEncoder() {
+
+		if (passwordEncoder == null) {
+			passwordEncoder = new BCryptPasswordEncoder();
+		}
+
 	}
 
 	@Override
@@ -132,8 +141,9 @@ public class UserServicesImpl implements UserServices {
 
 	@Override
 	public void signUpUser(UserReq userReq, Map<String, Object> map) {
-
+		initPasswordEncoder();
 		if (userReq != null) {
+			initPasswordEncoder();
 			User user = userMapper.getUser(userReq);
 
 			Session session = sessionFactory.openSession();
@@ -614,13 +624,189 @@ public class UserServicesImpl implements UserServices {
 		return status;
 	}
 
+	@Override
+	public void createEsPlaceholderUser(String empty, Map<String, Object> map) {
+
+		Session session = sessionFactory.openSession();
+		Transaction transaction = null;
+
+		try {
+
+			Date date = new Date();
+			transaction = session.beginTransaction();
+			User user = new User();
+			user.setCode(helperServices.getUserGenId());
+			user.setPlaceToken(helperServices.getGenPublicId());
+			user.setAuthUser(helperServices.getProductPublicId());
+			user.setDate(date);
+			user.setEnabled(1);
+			user.setUdate(date);
+			user.setPublicId(helperServices.getGenPublicId());
+
+			Stakeholder stakeholder = new Stakeholder();
+			stakeholder.setActive(true);
+			stakeholder.setApprove(1);
+			stakeholder.setDate(date);
+			stakeholder.setPublicId(helperServices.getGenPublicId());
+
+			Cart cart = new Cart();
+			cart.setStakeholder(stakeholder);
+			cart.setDate(date);
+			cart.setUpdateDate(date);
+			cart.setPublicId(helperServices.getGenPublicId());
+
+			session.persist(user);
+			session.persist(stakeholder);
+			session.persist(cart);
+
+			transaction.commit();
+			session.clear();
+
+			EsInitInf esInitInf = new EsInitInf();
+			esInitInf.setEsInf(user.getPlaceToken());
+			esInitInf.setId(user.getAuthUser());
+
+			map.put("status", true);
+			map.put("message", "Initialize successfully");
+			map.put("response", esInitInf);
+		} catch (Exception e) {
+
+			e.printStackTrace();
+
+		}
+
+	}
+
+	@Override
+	public void getEsTokenBySequence(String id, Map<String, Object> map) {
+
+		boolean status = false;
+		Session session = sessionFactory.openSession();
+		Transaction transaction = null;
+
+		try {
+
+			transaction = session.beginTransaction();
+
+			CriteriaBuilder criteriaBuilder = session.getCriteriaBuilder();
+			CriteriaQuery<User> criteriaQuery = (CriteriaQuery<User>) criteriaBuilder.createQuery(User.class);
+
+			Root<User> root = (Root<User>) criteriaQuery.from(User.class);
+
+			criteriaQuery.select(root);
+
+			criteriaQuery.where(criteriaBuilder.equal(root.get("phoneNo"), id));
+			criteriaQuery.orderBy(criteriaBuilder.desc(root.get("id")));
+
+			Query<User> query = session.createQuery(criteriaQuery);
+
+			User user = query.getSingleResult();
+
+			session.clear();
+
+		} catch (Exception e) {
+			status = false;
+			if (transaction != null) {
+
+				transaction.rollback();
+			}
+		}
+		session.close();
+
+	}
+
+	@Override
+	public User getUserByEsUserAuth(String id) {
+
+		log.info("getUserByEsUserAuth ....");
+
+		User user = null;
+		Session session = sessionFactory.openSession();
+		Transaction transaction = null;
+
+		try {
+
+			transaction = session.beginTransaction();
+
+			CriteriaBuilder criteriaBuilder = session.getCriteriaBuilder();
+			CriteriaQuery<User> criteriaQuery = (CriteriaQuery<User>) criteriaBuilder.createQuery(User.class);
+
+			Root<User> root = (Root<User>) criteriaQuery.from(User.class);
+
+			criteriaQuery.select(root);
+
+			criteriaQuery.where(criteriaBuilder.equal(root.get("authUser"), id));
+
+			Query<User> query = session.createQuery(criteriaQuery);
+
+			user = query.getSingleResult();
+
+			log.info("User Found By Token" + user.getCode());
+
+			session.clear();
+
+		} catch (Exception e) {
+			if (transaction != null) {
+
+				transaction.rollback();
+			}
+			e.printStackTrace();
+		}
+		session.close();
+
+		return user;
+	}
+
+	@Override
+	public User getUserByPlsToken(String esInf) {
+
+		log.info("getUserByPlsToken ...");
+
+		User user = null;
+		Session session = sessionFactory.openSession();
+		Transaction transaction = null;
+
+		try {
+
+			transaction = session.beginTransaction();
+
+			CriteriaBuilder criteriaBuilder = session.getCriteriaBuilder();
+			CriteriaQuery<User> criteriaQuery = (CriteriaQuery<User>) criteriaBuilder.createQuery(User.class);
+
+			Root<User> root = (Root<User>) criteriaQuery.from(User.class);
+
+			criteriaQuery.select(root);
+
+			criteriaQuery.where(criteriaBuilder.equal(root.get("placeToken"), esInf));
+
+			Query<User> query = session.createQuery(criteriaQuery);
+
+			user = query.getSingleResult();
+
+			log.info("Get By Token " + user.getCode());
+
+			session.clear();
+
+		} catch (Exception e) {
+			if (transaction != null) {
+
+				transaction.rollback();
+			}
+			e.printStackTrace();
+		}
+		session.close();
+
+		return user;
+
+	}
+
 	private boolean isKeyOrIdExist(String key) {
 
 		return userRepository.getUserByPublicId(key) != null;
 	}
 
 	private String getIncription(String getnPass) {
-
+		initPasswordEncoder();
 		return passwordEncoder.encode(getnPass);
 	}
 

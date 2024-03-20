@@ -6,6 +6,23 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.altqart.model.MethodAndTransaction;
+import com.altqart.model.OrderItem;
+import com.altqart.model.Parcel;
+import com.altqart.model.ShippingAddress;
+import com.altqart.model.Stakeholder;
+import com.altqart.model.Status;
+import com.altqart.model.Store;
+import com.altqart.model.User;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,76 +36,56 @@ public class RespOrder {
 
 	private String invNo;
 
-	private RespStakeholder customer;
-
 	private RespEsUser user;
+
+	private Stakeholder stakeholder;
+
+	private Store store;
 
 	private List<RespOrderItem> orderItems = new ArrayList<>();
 
+	private RespShippingAddress shippingAddress;
+
 	private RespStatus status;
 
-	private List<RespMethodAndTransaction> methodTransactions;
+	private RespParcel parcel;
 
-	private double netSaleAmount;
+	private double itemDiscount;
 
-	private double netSaleRevenueAmount;
+	private double totalAmount;
 
-	private double itemTotal;
+	private String couponCode;
 
-	private double vatRate;
+	private double couponPar;
 
-	private double totalVat;
+	private double couponDiscount;
 
-	private double totalAmountVat;
+	private double totalQty;
 
-	private double discount;
+	private double subTotal;
 
 	private double shippingAndHandlingAmount;
 
-	private double otherAmount;
+	private double shippingDiscount;
 
-	private double totalCost;
-
-	private double amountAfterDiscount;
-
-	private BigDecimal orderTotalProfit;
-
-	private BigDecimal orderTotalLoss;
-	
 	private double grandTotal;
 
-	private double netGrandTotal;
-	
-	private double totalCredit;
-
-	private double totalDebit;
-
-	private double prevCredit;
-
-	private double prevDebit;
+	private List<RespMethodAndTransaction> methodTransactions;
 
 	private double paidAmount;
 
 	private double creditAmount;
 
-	private LocalTime nextPayDate;
+	private double codAmount;
 
-	private String narration;
+	private double noteCost;
 
-	private double lsessAdjustment;
-
-	private double discountPercent;
-
-	private double cullectedAmount;
-
-	private double changeAmount;
-
-	private double totalProductCost;
-
-	private double totalSaleAmountWithTotalCost;
+	private int returnStatus; // 0 pending, 1 Approve
 
 	private Date date;
 
 	private Date grupeDate;
+
+	private String note;
 
 }

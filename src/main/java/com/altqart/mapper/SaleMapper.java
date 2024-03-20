@@ -3,7 +3,9 @@ package com.altqart.mapper;
 import java.util.List;
 
 import com.altqart.model.Order;
+import com.altqart.req.model.OrderPlaceReq;
 import com.altqart.req.model.OrderReq;
+import com.altqart.resp.model.RespMinOrder;
 import com.altqart.resp.model.RespOrder;
 
 public interface SaleMapper {
@@ -21,5 +23,9 @@ public interface SaleMapper {
 	public List<RespOrder> mapAllOrderByStatus(List<Order> orders, int status);
 
 	public RespOrder mapSaleInvoiceDetails(Order dbOrder);
+
+	public Order mapPlaceOrder(OrderPlaceReq orderPlaceReq);
+
+	public List<RespMinOrder> mapAllRespMinOrder(List<Order> orders);
 
 }

@@ -243,6 +243,10 @@ public class ZoneServicesImpl implements ZoneServices {
 			try {
 				transaction = session.beginTransaction();
 				for (Zone zone : zones) {
+					
+					if(zone.getCity() == null) {
+						throw new Exception("Zone City not found");
+					}
 					session.persist(zone);
 				}
 

@@ -23,7 +23,7 @@ import lombok.Setter;
 public class Upazila {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 
 	@OneToMany(mappedBy = "upazila")

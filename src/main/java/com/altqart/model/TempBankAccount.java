@@ -20,7 +20,7 @@ import lombok.Setter;
 public class TempBankAccount {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 	
 	@Column(name="ref_id")
